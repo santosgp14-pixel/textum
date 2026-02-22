@@ -8,7 +8,17 @@
 define('APP_ENV',     getenv('APP_ENV')  ?: 'development'); // production | development
 define('APP_NAME',    'Textum');
 define('APP_VERSION', '1.0.0');
-define('BASE_URL',    getenv('BASE_URL') ?: 'http://localhost/textum/public');
+
+// BASE_URL: prioridad → env var → detección automática → fallback local
+if (getenv('BASE_URL')) {
+    define('BASE_URL', rtrim(getenv('BASE_URL'), '/'));
+} else {
+    $scheme   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host     = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $script   = $_SERVER['SCRIPT_NAME'] ?? '/index.php';
+    $basePath = rtrim(dirname($script), '/');
+    define('BASE_URL', $scheme . '://' . $host . ($basePath === '/' ? '' : $basePath));
+}
 
 // ── Base de datos ──────────────────────────────────────────────
 define('DB_HOST',    getenv('DB_HOST')    ?: 'localhost');
