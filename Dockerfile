@@ -21,4 +21,9 @@ RUN printf '<VirtualHost *:80>\n\
 # Permisos
 RUN chown -R www-data:www-data /var/www/textum
 
+# Script de inicio que adapta el puerto a Railway
+RUN chmod +x /var/www/textum/docker-start.sh
+
 EXPOSE 80
+
+CMD ["/var/www/textum/docker-start.sh"]
