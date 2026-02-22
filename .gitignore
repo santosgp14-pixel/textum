@@ -1,0 +1,23 @@
+# Configuración local (contiene credenciales)
+config/config.local.php
+.env
+.env.local
+
+# Dependencias (no hay por diseño - sin Composer)
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+logs/
+
+# Cache
+cache/
+tmp/

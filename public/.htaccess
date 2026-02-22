@@ -1,0 +1,7 @@
+Options -Indexes
+DirectoryIndex index.php
+
+# Bloquear acceso a archivos sensibles
+<FilesMatch "\.(sql|md|txt|json|env)$">
+  Require all denied
+</FilesMatch>

@@ -1,0 +1,14 @@
+# TEXTUM - Apache config
+Options -Indexes
+
+# Bloquear acceso directo a PHP fuera de public/
+<FilesMatch "\.php$">
+  Require all denied
+</FilesMatch>
+
+# Permitir solo index.php
+<Files "index.php">
+  Require all granted
+</Files>
+
+# Los directorios sensibles tienen su propio .htaccess con Require all denied
