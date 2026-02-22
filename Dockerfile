@@ -1,6 +1,8 @@
 FROM php:8.2-apache
 
-RUN a2enmod rewrite headers
+# Desactivar MPMs extras, dejar solo prefork (requerido por mod_php)
+# Luego habilitar rewrite y headers
+RUN a2dismod mpm_event mpm_worker 2>/dev/null; a2enmod mpm_prefork rewrite headers
 
 RUN docker-php-ext-install pdo pdo_mysql
 
