@@ -21,9 +21,13 @@ RUN printf '<VirtualHost *:80>\n\
 # Permisos
 RUN chown -R www-data:www-data /var/www/textum
 
-# Script de inicio que adapta el puerto a Railway
-RUN chmod +x /var/www/textum/docker-start.sh
+# Crear el script de inicio DENTRO del container (evita CRLF de Windows)
+RUN printf '#!/bin/sh\n\
+PORT="${PORT:-80}"\n\
+sed -i "s/Listen 80/Listen ${PORT}/" /etc/apache2/ports.conf\n\
+sed -i "s/<VirtualHost \\*:80>/<VirtualHost *:${PORT}>/" /etc/apache2/sites-available/000-default.conf\n\
+exec apache2-foreground\n' > /start.sh && chmod +x /start.sh
 
 EXPOSE 80
 
-CMD ["/var/www/textum/docker-start.sh"]
+CMD ["/start.sh"]
