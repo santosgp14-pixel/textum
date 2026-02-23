@@ -24,11 +24,15 @@ if (getenv('BASE_URL')) {
 }
 
 // ── Base de datos ──────────────────────────────────────────────
-define('DB_HOST',    getenv('DB_HOST')    ?: 'localhost');
-define('DB_PORT',    (int)(getenv('DB_PORT') ?: 3307));
-define('DB_NAME',    getenv('DB_NAME')    ?: 'textum');
-define('DB_USER',    getenv('DB_USER')    ?: 'root');
-define('DB_PASS',    getenv('DB_PASS')    ?: '');
+function env(string $key, string $default = ''): string {
+    return getenv($key) ?: ($_ENV[$key] ?? ($_SERVER[$key] ?? $default));
+}
+
+define('DB_HOST',    env('DB_HOST',    'localhost'));
+define('DB_PORT',    (int)(env('DB_PORT', '3307')));
+define('DB_NAME',    env('DB_NAME',    'textum'));
+define('DB_USER',    env('DB_USER',    'root'));
+define('DB_PASS',    env('DB_PASS',    ''));
 define('DB_CHARSET', 'utf8mb4');
 
 // ── Sesión ─────────────────────────────────────────────────────

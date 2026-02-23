@@ -7,4 +7,4 @@ COPY . /app
 WORKDIR /app
 
 # Railway inyecta $PORT en runtime; PHP built-in server no tiene MPM issues
-CMD php -S 0.0.0.0:${PORT:-8080} -t public
+CMD php -d variables_order=EGPCS -S 0.0.0.0:${PORT:-8080} -t public
