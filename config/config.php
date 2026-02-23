@@ -13,7 +13,10 @@ define('APP_VERSION', '1.0.0');
 if (getenv('BASE_URL')) {
     define('BASE_URL', rtrim(getenv('BASE_URL'), '/'));
 } else {
-    $scheme   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $isHttps  = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+             || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https'
+             || ($_SERVER['HTTP_X_FORWARDED_SSL']   ?? '') === 'on';
+    $scheme   = $isHttps ? 'https' : 'http';
     $host     = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $script   = $_SERVER['SCRIPT_NAME'] ?? '/index.php';
     $basePath = rtrim(dirname($script), '/');
