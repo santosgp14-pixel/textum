@@ -36,6 +36,7 @@ require VIEW_PATH . '/layout/header.php';
     <div class="card-body flex gap-3 flex-wrap">
       <a href="index.php?page=pedido_nuevo" class="btn btn-primary btn-lg">＋ Nuevo Pedido</a>
       <a href="index.php?page=pedidos"      class="btn btn-outline">Ver Pedidos</a>
+      <a href="index.php?page=clientes"     class="btn btn-outline">👥 Clientes</a>
       <a href="index.php?page=stock"        class="btn btn-outline">Stock / Telas</a>
       <a href="index.php?page=balance"      class="btn btn-outline">Balance del día</a>
     </div>
@@ -63,6 +64,36 @@ require VIEW_PATH . '/layout/header.php';
               </td>
               <td class="text-danger font-bold"><?= number_format($v['stock'], 3, ',', '.') ?></td>
               <td><?= $v['unidad'] ?></td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Top clientes -->
+    <?php if (!empty($top_clientes)): ?>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">👥 Top clientes</span>
+        <a href="index.php?page=clientes" class="btn btn-sm btn-outline">Ver todos</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Cliente</th><th>Pedidos</th><th>Total</th></tr>
+          </thead>
+          <tbody>
+            <?php foreach ($top_clientes as $c): ?>
+            <tr>
+              <td>
+                <a href="index.php?page=cliente_perfil&id=<?= $c['id'] ?>" class="font-bold">
+                  <?= htmlspecialchars($c['nombre']) ?>
+                </a>
+              </td>
+              <td class="text-muted"><?= (int)$c['pedidos'] ?></td>
+              <td class="font-bold">$ <?= number_format((float)$c['total_comprado'], 2, ',', '.') ?></td>
             </tr>
             <?php endforeach; ?>
           </tbody>

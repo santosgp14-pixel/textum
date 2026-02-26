@@ -29,6 +29,9 @@
       <a href="index.php?page=pedidos"    class="<?= ($currentPage??'')==='pedidos'    ? 'active' : '' ?>">
         <span class="nav-icon">☰</span> Pedidos
       </a>
+      <a href="index.php?page=clientes"   class="<?= ($currentPage??'')==='clientes'   ? 'active' : '' ?>">
+        <span class="nav-icon">👥</span> Clientes
+      </a>
       <a href="index.php?page=stock"      class="<?= ($currentPage??'')==='stock'      ? 'active' : '' ?>">
         <span class="nav-icon">▦</span> Stock / Telas
       </a>

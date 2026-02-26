@@ -64,8 +64,17 @@ $router->add('GET',  'pedido_abierto',   fn() => (new PedidosController())->pedi
 $router->add('POST', 'pedido_item_add',  fn() => (new PedidosController())->agregarItem());
 $router->add('POST', 'pedido_item_del',  fn() => (new PedidosController())->eliminarItem());
 $router->add('POST', 'pedido_confirmar', fn() => (new PedidosController())->confirmar());
-$router->add('POST', 'pedido_anular',    fn() => (new PedidosController())->anular());
-$router->add('GET',  'pedido_detalle',   fn() => (new PedidosController())->detalle());
+$router->add('POST', 'pedido_anular',      fn() => (new PedidosController())->anular());
+$router->add('GET',  'pedido_detalle',     fn() => (new PedidosController())->detalle());
+$router->add('POST', 'pedido_cliente_set', fn() => (new PedidosController())->setCliente());
+
+// Clientes
+$router->add('GET',  'clientes',        fn() => (new ClientesController())->index());
+$router->add('GET',  'cliente_nuevo',   fn() => (new ClientesController())->nuevo());
+$router->add('GET',  'cliente_editar',  fn() => (new ClientesController())->editar());
+$router->add('POST', 'cliente_guardar', fn() => (new ClientesController())->guardar());
+$router->add('GET',  'cliente_perfil',  fn() => (new ClientesController())->perfil());
+$router->add('GET',  'clientes_buscar', fn() => (new ClientesController())->buscar());
 
 // Balance
 $router->add('GET',  'balance',        fn() => (new BalanceController())->index());

@@ -31,6 +31,18 @@ require VIEW_PATH . '/layout/header.php';
           <div class="text-xs text-muted">Vendedor</div>
           <div class="font-bold"><?= htmlspecialchars($pedido['vendedor_nombre']) ?></div>
         </div>
+        <div>
+          <div class="text-xs text-muted">Cliente</div>
+          <div class="font-bold">
+            <?php if (!empty($pedido['cliente_nombre'])): ?>
+              <a href="index.php?page=cliente_perfil&id=<?= $pedido['cliente_id'] ?>">
+                <?= htmlspecialchars($pedido['cliente_nombre']) ?>
+              </a>
+            <?php else: ?>
+              <span class="text-muted" style="font-weight:400">Sin asignar</span>
+            <?php endif; ?>
+          </div>
+        </div>
         <?php if ($pedido['confirmado_at']): ?>
         <div>
           <div class="text-xs text-muted">Confirmado</div>

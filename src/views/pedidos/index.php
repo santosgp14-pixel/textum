@@ -18,6 +18,7 @@ require VIEW_PATH . '/layout/header.php';
           <th>Estado</th>
           <th>Items</th>
           <th>Total</th>
+          <th>Cliente</th>
           <th>Vendedor</th>
           <th>Acción</th>
         </tr>
@@ -30,6 +31,13 @@ require VIEW_PATH . '/layout/header.php';
           <td><span class="badge badge-<?= $p['estado'] ?>"><?= ucfirst($p['estado']) ?></span></td>
           <td><?= (int)$p['total_items'] ?></td>
           <td class="font-bold">$ <?= number_format($p['total'], 2, ',', '.') ?></td>
+          <td class="text-sm">
+            <?php if (!empty($p['cliente_nombre'])): ?>
+              <a href="index.php?page=cliente_perfil&id=<?= $p['cliente_id'] ?>"><?= htmlspecialchars($p['cliente_nombre']) ?></a>
+            <?php else: ?>
+              <span class="text-muted">—</span>
+            <?php endif; ?>
+          </td>
           <td class="text-sm"><?= htmlspecialchars($p['vendedor']) ?></td>
           <td>
             <?php if ($p['estado'] === 'abierto'): ?>
@@ -42,7 +50,7 @@ require VIEW_PATH . '/layout/header.php';
         <?php endforeach; ?>
         <?php if (empty($pedidos)): ?>
         <tr>
-          <td colspan="7" class="text-center text-muted" style="padding:32px">
+          <td colspan="8" class="text-center text-muted" style="padding:32px">
             No hay pedidos aún. <a href="index.php?page=pedido_nuevo">Crear el primero</a>.
           </td>
         </tr>

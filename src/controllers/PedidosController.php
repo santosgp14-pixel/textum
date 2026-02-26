@@ -25,9 +25,11 @@ class PedidosController {
 
         $stmt = $this->db->prepare(
             "SELECT p.*, u.nombre AS vendedor,
+                    c.nombre AS cliente_nombre,
                     (SELECT COUNT(*) FROM pedido_items pi WHERE pi.pedido_id = p.id) AS total_items
              FROM pedidos p
              JOIN usuarios u ON u.id = p.usuario_id
+             LEFT JOIN clientes c ON c.id = p.cliente_id
              WHERE p.empresa_id = ?
              ORDER BY p.created_at DESC
              LIMIT 200"
@@ -177,6 +179,46 @@ class PedidosController {
         $total = array_sum(array_column($items, 'subtotal'));
 
         echo json_encode(['ok' => true, 'items' => $items, 'total' => $total]);
+        exit;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // Asignar / quitar cliente de pedido abierto (AJAX)
+    // ──────────────────────────────────────────────────────────
+
+    public function setCliente(): void {
+        Auth::require();
+        header('Content-Type: application/json');
+        $eid        = Auth::empresaId();
+        $pedido_id  = (int)($_POST['pedido_id']  ?? 0);
+        $cliente_id = (int)($_POST['cliente_id'] ?? 0);
+
+        $pedido = $this->findPedido($pedido_id, $eid);
+        if ($pedido['estado'] !== 'abierto') {
+            echo json_encode(['ok' => false, 'msg' => 'Solo se puede modificar un pedido abierto.']);
+            exit;
+        }
+
+        if ($cliente_id > 0) {
+            $stmt = $this->db->prepare(
+                "SELECT id, nombre FROM clientes WHERE id=? AND empresa_id=? AND activo=1"
+            );
+            $stmt->execute([$cliente_id, $eid]);
+            $cliente = $stmt->fetch();
+            if (!$cliente) {
+                echo json_encode(['ok' => false, 'msg' => 'Cliente no encontrado.']);
+                exit;
+            }
+            $this->db->prepare(
+                "UPDATE pedidos SET cliente_id=? WHERE id=? AND empresa_id=?"
+            )->execute([$cliente_id, $pedido_id, $eid]);
+            echo json_encode(['ok' => true, 'cliente' => $cliente]);
+        } else {
+            $this->db->prepare(
+                "UPDATE pedidos SET cliente_id=NULL WHERE id=? AND empresa_id=?"
+            )->execute([$pedido_id, $eid]);
+            echo json_encode(['ok' => true, 'cliente' => null]);
+        }
         exit;
     }
 
@@ -386,8 +428,11 @@ class PedidosController {
 
     private function findPedido(int $id, int $eid): array {
         $stmt = $this->db->prepare(
-            "SELECT p.*, u.nombre AS vendedor_nombre
-             FROM pedidos p JOIN usuarios u ON u.id = p.usuario_id
+            "SELECT p.*, u.nombre AS vendedor_nombre,
+                    c.nombre AS cliente_nombre
+             FROM pedidos p
+             JOIN usuarios u ON u.id = p.usuario_id
+             LEFT JOIN clientes c ON c.id = p.cliente_id
              WHERE p.id = ? AND p.empresa_id = ?"
         );
         $stmt->execute([$id, $eid]);

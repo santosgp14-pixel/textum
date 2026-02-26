@@ -14,6 +14,36 @@ require VIEW_PATH . '/layout/header.php';
 <!-- Form wrapper (data attribute para JS) -->
 <div id="pedido-abierto-form" data-pedido-id="<?= $pedido['id'] ?>">
 
+  <!-- Cliente del pedido -->
+  <div class="cliente-bar mb-4">
+    <span class="text-sm" style="opacity:.65;white-space:nowrap">👤 Cliente:</span>
+    <div id="cliente-asignado" <?= empty($pedido['cliente_nombre']) ? 'style="display:none"' : '' ?>
+         class="flex items-center gap-2 flex-wrap">
+      <strong id="cliente-nombre-display"><?= htmlspecialchars($pedido['cliente_nombre'] ?? '') ?></strong>
+      <?php if (!empty($pedido['cliente_id'])): ?>
+        <a href="index.php?page=cliente_perfil&id=<?= $pedido['cliente_id'] ?>"
+           class="text-sm text-muted" target="_blank">ver perfil ↗</a>
+      <?php endif; ?>
+      <button type="button" id="btn-cambiar-cliente" class="btn btn-sm btn-outline">Cambiar</button>
+      <button type="button" id="btn-quitar-cliente" class="btn btn-sm btn-danger">✕ Quitar</button>
+    </div>
+    <div id="cliente-sin-asignar" <?= !empty($pedido['cliente_nombre']) ? 'style="display:none"' : '' ?>
+         class="flex items-center gap-2">
+      <span class="text-sm text-muted">Sin cliente asignado</span>
+      <button type="button" id="btn-asignar-cliente" class="btn btn-sm btn-outline">＋ Asignar cliente</button>
+    </div>
+    <div id="cliente-search-panel" style="display:none;width:100%;margin-top:8px">
+      <div class="flex gap-2 items-center flex-wrap">
+        <input type="text" id="cliente-search-input" class="form-control"
+               placeholder="Buscar por nombre, teléfono o email..." autocomplete="off"
+               style="max-width:320px">
+        <a href="index.php?page=cliente_nuevo" class="btn btn-sm btn-outline" target="_blank">＋ Nuevo cliente</a>
+        <button type="button" id="btn-cerrar-cliente-search" class="btn btn-sm btn-outline">✕</button>
+      </div>
+      <div id="cliente-search-results" class="cliente-dropdown"></div>
+    </div>
+  </div>
+
   <div class="order-layout">
 
     <!-- IZQUIERDA: Escaner + tabla de items -->

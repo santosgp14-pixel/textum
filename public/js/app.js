@@ -352,6 +352,77 @@ if (pedidoForm) {
     btnCamaraClose.addEventListener('click', cerrarCamara);
     modalCamara.querySelector('.modal-backdrop').addEventListener('click', cerrarCamara);
   }
+
+  // ── Widget de cliente ─────────────────────────────────────────
+  const clienteAsignado      = document.getElementById('cliente-asignado');
+  const clienteSinAsignar    = document.getElementById('cliente-sin-asignar');
+  const clienteSearchPanel   = document.getElementById('cliente-search-panel');
+  const clienteNombreDisplay = document.getElementById('cliente-nombre-display');
+  const clienteSearchInput   = document.getElementById('cliente-search-input');
+  const clienteSearchResults = document.getElementById('cliente-search-results');
+
+  if (clienteAsignado && clienteSearchInput) {
+    const abrirBusquedaCliente = () => {
+      clienteSearchPanel.style.display = '';
+      clienteSearchInput.value = '';
+      clienteSearchResults.innerHTML = '';
+      clienteSearchInput.focus();
+    };
+    const cerrarBusquedaCliente = () => {
+      clienteSearchPanel.style.display = 'none';
+    };
+    const setCliente = clienteId => {
+      const fd = new FormData();
+      fd.append('pedido_id',  pedidoId);
+      fd.append('cliente_id', clienteId);
+      fetch('index.php?page=pedido_cliente_set', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+          if (!data.ok) { alert(data.msg); return; }
+          cerrarBusquedaCliente();
+          if (data.cliente) {
+            clienteNombreDisplay.textContent = data.cliente.nombre;
+            clienteAsignado.style.display = '';
+            clienteSinAsignar.style.display = 'none';
+          } else {
+            clienteAsignado.style.display = 'none';
+            clienteSinAsignar.style.display = '';
+          }
+        })
+        .catch(() => alert('Error al asignar cliente.'));
+    };
+
+    document.getElementById('btn-asignar-cliente')?.addEventListener('click', abrirBusquedaCliente);
+    document.getElementById('btn-cambiar-cliente')?.addEventListener('click', abrirBusquedaCliente);
+    document.getElementById('btn-cerrar-cliente-search')?.addEventListener('click', cerrarBusquedaCliente);
+    document.getElementById('btn-quitar-cliente')?.addEventListener('click', () => setCliente(0));
+
+    let buscarClienteTimeout;
+    clienteSearchInput.addEventListener('input', () => {
+      clearTimeout(buscarClienteTimeout);
+      const q = clienteSearchInput.value.trim();
+      if (q.length < 2) { clienteSearchResults.innerHTML = ''; return; }
+      buscarClienteTimeout = setTimeout(() => {
+        fetch(`index.php?page=clientes_buscar&q=${encodeURIComponent(q)}`)
+          .then(r => r.json())
+          .then(data => {
+            if (!data.length) {
+              clienteSearchResults.innerHTML = '<div class="cliente-item" style="cursor:default;color:var(--gray-500)">Sin resultados. <a href="index.php?page=cliente_nuevo" target="_blank">Crear nuevo ↗</a></div>';
+              return;
+            }
+            clienteSearchResults.innerHTML = data.map(c =>
+              `<div class="cliente-item" data-id="${c.id}">
+                <div class="font-bold">${c.nombre}</div>
+                ${c.telefono ? `<div class="text-xs text-muted">${c.telefono}</div>` : ''}
+              </div>`
+            ).join('');
+            clienteSearchResults.querySelectorAll('.cliente-item[data-id]').forEach(el => {
+              el.addEventListener('click', () => setCliente(parseInt(el.dataset.id)));
+            });
+          });
+      }, 250);
+    });
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════

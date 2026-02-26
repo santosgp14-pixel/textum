@@ -48,6 +48,21 @@ class DashboardController {
         $stmt->execute([$eid]);
         $ultimos_pedidos = $stmt->fetchAll();
 
+        // Top clientes (por total comprado, todos los tiempos)
+        $stmt = $this->db->prepare(
+            "SELECT c.id, c.nombre,
+                    COUNT(p.id)               AS pedidos,
+                    COALESCE(SUM(p.total), 0) AS total_comprado
+             FROM clientes c
+             JOIN pedidos p ON p.cliente_id = c.id AND p.estado = 'confirmado'
+             WHERE c.empresa_id = ?
+             GROUP BY c.id
+             ORDER BY total_comprado DESC
+             LIMIT 5"
+        );
+        $stmt->execute([$eid]);
+        $top_clientes = $stmt->fetchAll();
+
         require VIEW_PATH . '/dashboard/index.php';
     }
 }

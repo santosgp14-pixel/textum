@@ -466,6 +466,35 @@ tbody tr:last-child td { border-bottom: none; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ── Widget de cliente en pedido abierto ──────────────────── */
+.cliente-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  background: var(--blue-50);
+  border: 1px solid var(--blue-100);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+}
+.cliente-dropdown {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  max-height: 240px;
+  overflow-y: auto;
+  margin-top: 4px;
+}
+.cliente-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--gray-100);
+  transition: background .12s;
+}
+.cliente-item:last-child { border-bottom: none; }
+.cliente-item:hover { background: var(--blue-50); }
+
 /* ── Escáner de cámara ─────────────────────────────────────── */
 .modal-camara-box {
   max-width: 520px;
