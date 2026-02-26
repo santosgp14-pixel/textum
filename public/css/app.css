@@ -466,6 +466,41 @@ tbody tr:last-child td { border-bottom: none; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ── Escáner de cámara ─────────────────────────────────────── */
+.modal-camara-box {
+  max-width: 520px;
+  padding: 20px;
+}
+.camara-video-wrap {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #000;
+  aspect-ratio: 4 / 3;
+  max-height: 60vh;
+}
+.camara-video-wrap video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.camara-scan-line {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  height: 2px;
+  background: var(--blue-400);
+  box-shadow: 0 0 8px var(--blue-400), 0 0 20px rgba(59,130,246,.6);
+  border-radius: 2px;
+  animation: camara-sweep 2s ease-in-out infinite;
+}
+@keyframes camara-sweep {
+  0%   { top: 15%; }
+  50%  { top: 85%; }
+  100% { top: 15%; }
+}
+
 /* Print */
 @media print {
   .sidebar, .topbar, .btn, .barcode-zone { display: none !important; }

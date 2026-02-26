@@ -283,6 +283,75 @@ if (pedidoForm) {
 
   // Auto-focus barcode input
   barcodeInput.focus();
+
+  // ── Escáner de cámara ───────────────────────────────────────
+  const btnCamara = document.getElementById('btn-camara');
+  if (btnCamara && typeof ZXing !== 'undefined') {
+    const modalCamara    = document.getElementById('modal-camara');
+    const btnCamaraClose = document.getElementById('btn-camara-close');
+    const camaraVideo    = document.getElementById('camara-video');
+    const camaraStatus   = document.getElementById('camara-status');
+    const deviceWrap     = document.getElementById('camara-device-wrap');
+    const deviceSelect   = document.getElementById('camara-device-select');
+
+    const codeReader = new ZXing.BrowserMultiFormatReader();
+    let scanActive   = false;
+
+    btnCamara.addEventListener('click', async () => {
+      modalCamara.classList.add('show');
+      camaraStatus.textContent = 'Buscando cámaras...';
+      deviceWrap.style.display = 'none';
+      try {
+        const devices = await codeReader.listVideoInputDevices();
+        if (!devices.length) {
+          camaraStatus.textContent = 'No se encontraron cámaras disponibles.';
+          return;
+        }
+        // Preferir cámara trasera en móviles
+        const back = devices.find(d => /back|rear|environment/i.test(d.label));
+        let selectedId = (back || devices[devices.length - 1]).deviceId;
+
+        if (devices.length > 1) {
+          deviceSelect.innerHTML = devices.map((d, i) =>
+            `<option value="${d.deviceId}" ${d.deviceId === selectedId ? 'selected' : ''}>${d.label || 'Cámara ' + (i + 1)}</option>`
+          ).join('');
+          deviceWrap.style.display = '';
+          deviceSelect.onchange = () => {
+            selectedId = deviceSelect.value;
+            iniciarScan(selectedId);
+          };
+        }
+        iniciarScan(selectedId);
+      } catch (err) {
+        camaraStatus.textContent = 'Error al acceder a la cámara: ' + err.message;
+      }
+    });
+
+    function iniciarScan(deviceId) {
+      codeReader.reset();
+      camaraStatus.textContent = 'Apunte al código de barras...';
+      scanActive = true;
+      codeReader.decodeFromVideoDevice(deviceId, camaraVideo, (result, err) => {
+        if (!scanActive) return;
+        if (result) {
+          const code = result.getText();
+          cerrarCamara();
+          barcodeInput.value = code;
+          buscarBarcode(code);
+        }
+        // NotFoundException es normal (sin código visible), se ignora
+      });
+    }
+
+    function cerrarCamara() {
+      scanActive = false;
+      codeReader.reset();
+      modalCamara.classList.remove('show');
+    }
+
+    btnCamaraClose.addEventListener('click', cerrarCamara);
+    modalCamara.querySelector('.modal-backdrop').addEventListener('click', cerrarCamara);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════

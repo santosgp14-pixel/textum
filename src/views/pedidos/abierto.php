@@ -33,6 +33,9 @@ require VIEW_PATH . '/layout/header.php';
                  placeholder="Cantidad" step="0.001" min="0.001"
                  style="max-width:120px">
           <button id="btn-add-item" class="btn btn-primary">+ Agregar</button>
+          <button type="button" id="btn-camara" class="btn btn-outline" title="Escanear con cámara">
+            📷 Cámara
+          </button>
         </div>
       </div>
 
@@ -123,6 +126,27 @@ require VIEW_PATH . '/layout/header.php';
     </div>
 
   </div>
+
+  <!-- Modal: Escáner de cámara -->
+  <div id="modal-camara" class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-box modal-camara-box">
+      <div class="flex justify-between items-center" style="margin-bottom:14px">
+        <span class="font-bold" style="font-size:1rem">📷 Escanear código de barras</span>
+        <button type="button" id="btn-camara-close" class="btn btn-sm btn-outline">✕ Cerrar</button>
+      </div>
+      <div class="camara-video-wrap">
+        <video id="camara-video" autoplay muted playsinline></video>
+        <div class="camara-scan-line"></div>
+      </div>
+      <p id="camara-status" class="text-sm text-muted text-center" style="margin-top:10px">Iniciando cámara...</p>
+      <div id="camara-device-wrap" style="margin-top:10px;display:none">
+        <label class="form-label" style="font-size:.8rem">Seleccionar cámara:</label>
+        <select id="camara-device-select" class="form-control" style="margin-top:4px"></select>
+      </div>
+    </div>
+  </div>
 </div>
 
+<script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
 <?php require VIEW_PATH . '/layout/footer.php'; ?>
