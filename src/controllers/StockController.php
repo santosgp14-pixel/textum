@@ -137,6 +137,8 @@ class StockController {
             'codigo_barras' => trim($_POST['codigo_barras'] ?? ''),
             'unidad'        => in_array($_POST['unidad'] ?? '', ['metro','kilo']) ? $_POST['unidad'] : 'metro',
             'minimo_venta'  => (float)($_POST['minimo_venta']  ?? 0.1),
+            'costo'         => (float)($_POST['costo']         ?? 0),
+            'precio_rollo'  => (float)($_POST['precio_rollo']  ?? 0),
             'precio'        => (float)($_POST['precio']        ?? 0),
             'stock'         => (float)($_POST['stock']         ?? 0),
         ];
@@ -151,25 +153,27 @@ class StockController {
             $stmt = $this->db->prepare(
                 "UPDATE variantes
                  SET descripcion=?, codigo_barras=?, unidad=?,
-                     minimo_venta=?, precio=?, stock=?
+                     minimo_venta=?, costo=?, precio_rollo=?, precio=?, stock=?
                  WHERE id=? AND empresa_id=?"
             );
             $stmt->execute([
                 $data['descripcion'], $data['codigo_barras'], $data['unidad'],
-                $data['minimo_venta'], $data['precio'], $data['stock'],
+                $data['minimo_venta'], $data['costo'], $data['precio_rollo'],
+                $data['precio'], $data['stock'],
                 $id, $eid
             ]);
         } else {
             try {
                 $stmt = $this->db->prepare(
                     "INSERT INTO variantes
-                     (tela_id, empresa_id, descripcion, codigo_barras, unidad, minimo_venta, precio, stock)
-                     VALUES (?,?,?,?,?,?,?,?)"
+                     (tela_id, empresa_id, descripcion, codigo_barras, unidad, minimo_venta, costo, precio_rollo, precio, stock)
+                     VALUES (?,?,?,?,?,?,?,?,?,?)"
                 );
                 $stmt->execute([
                     $tid, $eid,
                     $data['descripcion'], $data['codigo_barras'], $data['unidad'],
-                    $data['minimo_venta'], $data['precio'], $data['stock']
+                    $data['minimo_venta'], $data['costo'], $data['precio_rollo'],
+                    $data['precio'], $data['stock']
                 ]);
             } catch (PDOException $e) {
                 if ($e->getCode() === '23000') {
@@ -221,8 +225,197 @@ class StockController {
     }
 
     // ──────────────────────────────────────────────────────────
+    // ROLLOS (rollos físicos individuales de cada variante)
+    // ──────────────────────────────────────────────────────────
+
+    public function rollos(): void {
+        Auth::require();
+        $variante_id = (int)($_GET['variante_id'] ?? 0);
+        $eid         = Auth::empresaId();
+        $variante    = $this->findVariante($variante_id, $eid);
+
+        $stmt = $this->db->prepare(
+            "SELECT * FROM rollos
+             WHERE variante_id = ? AND empresa_id = ?
+             ORDER BY created_at DESC"
+        );
+        $stmt->execute([$variante_id, $eid]);
+        $rollos = $stmt->fetchAll();
+        require VIEW_PATH . '/stock/rollos.php';
+    }
+
+    public function nuevoRollo(): void {
+        Auth::require();
+        $variante_id = (int)($_GET['variante_id'] ?? 0);
+        $eid         = Auth::empresaId();
+        $variante    = $this->findVariante($variante_id, $eid);
+        $rollo       = null;
+        require VIEW_PATH . '/stock/rollo_form.php';
+    }
+
+    public function editarRollo(): void {
+        Auth::require();
+        $id  = (int)($_GET['id'] ?? 0);
+        $eid = Auth::empresaId();
+        $stmt = $this->db->prepare(
+            "SELECT r.*, r.variante_id
+             FROM rollos r
+             WHERE r.id = ? AND r.empresa_id = ?"
+        );
+        $stmt->execute([$id, $eid]);
+        $rollo = $stmt->fetch();
+        if (!$rollo) { $this->notFound(); return; }
+        $variante = $this->findVariante($rollo['variante_id'], $eid);
+        require VIEW_PATH . '/stock/rollo_form.php';
+    }
+
+    public function guardarRollo(): void {
+        Auth::require();
+        $eid         = Auth::empresaId();
+        $uid         = Auth::userId();
+        $id          = (int)($_POST['id']          ?? 0);
+        $variante_id = (int)($_POST['variante_id'] ?? 0);
+        $metros      = (float)($_POST['metros']    ?? 0);
+        $nro_rollo   = trim($_POST['nro_rollo']    ?? '');
+
+        if ($metros <= 0) {
+            $this->flashError('La cantidad debe ser mayor a 0.');
+            header('Location: ' . BASE_URL . "/index.php?page=rollos&variante_id=$variante_id");
+            exit;
+        }
+
+        $this->db->beginTransaction();
+        try {
+            if ($id > 0) {
+                $stmt = $this->db->prepare(
+                    "SELECT metros FROM rollos WHERE id = ? AND empresa_id = ?"
+                );
+                $stmt->execute([$id, $eid]);
+                $old  = $stmt->fetch();
+                $diff = $metros - (float)$old['metros'];
+
+                $this->db->prepare(
+                    "UPDATE rollos SET nro_rollo = ?, metros = ? WHERE id = ? AND empresa_id = ?"
+                )->execute([$nro_rollo, $metros, $id, $eid]);
+
+                if (abs($diff) > 0.001) {
+                    $stmt = $this->db->prepare(
+                        "SELECT stock FROM variantes WHERE id = ? AND empresa_id = ? FOR UPDATE"
+                    );
+                    $stmt->execute([$variante_id, $eid]);
+                    $antes  = (float)$stmt->fetchColumn();
+                    $despues = max(0, $antes + $diff);
+                    $this->db->prepare(
+                        "UPDATE variantes SET stock = ? WHERE id = ? AND empresa_id = ?"
+                    )->execute([$despues, $variante_id, $eid]);
+                    $this->db->prepare(
+                        "INSERT INTO movimientos_stock
+                         (empresa_id, variante_id, usuario_id, tipo, cantidad, stock_antes, stock_despues)
+                         VALUES (?,?,?,'ajuste_entrada',?,?,?)"
+                    )->execute([$eid, $variante_id, $uid, $diff, $antes, $despues]);
+                }
+            } else {
+                $stmt = $this->db->prepare(
+                    "SELECT stock FROM variantes WHERE id = ? AND empresa_id = ? FOR UPDATE"
+                );
+                $stmt->execute([$variante_id, $eid]);
+                $antes   = (float)$stmt->fetchColumn();
+                $despues = $antes + $metros;
+
+                $this->db->prepare(
+                    "INSERT INTO rollos (variante_id, empresa_id, nro_rollo, metros)
+                     VALUES (?,?,?,?)"
+                )->execute([$variante_id, $eid, $nro_rollo, $metros]);
+
+                $this->db->prepare(
+                    "UPDATE variantes SET stock = ? WHERE id = ? AND empresa_id = ?"
+                )->execute([$despues, $variante_id, $eid]);
+
+                $this->db->prepare(
+                    "INSERT INTO movimientos_stock
+                     (empresa_id, variante_id, usuario_id, tipo, cantidad, stock_antes, stock_despues)
+                     VALUES (?,?,?,'ajuste_entrada',?,?,?)"
+                )->execute([$eid, $variante_id, $uid, $metros, $antes, $despues]);
+            }
+
+            $this->db->commit();
+            $this->flashOk('Rollo guardado. Stock actualizado.');
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            $this->flashError('Error al guardar el rollo: ' . $e->getMessage());
+        }
+
+        header('Location: ' . BASE_URL . "/index.php?page=rollos&variante_id=$variante_id");
+        exit;
+    }
+
+    public function eliminarRollo(): void {
+        Auth::requireAdmin();
+        $eid         = Auth::empresaId();
+        $uid         = Auth::userId();
+        $id          = (int)($_POST['id']          ?? 0);
+        $variante_id = (int)($_POST['variante_id'] ?? 0);
+
+        $stmt = $this->db->prepare(
+            "SELECT metros FROM rollos WHERE id = ? AND empresa_id = ?"
+        );
+        $stmt->execute([$id, $eid]);
+        $rollo = $stmt->fetch();
+        if (!$rollo) {
+            $this->flashError('Rollo no encontrado.');
+            header('Location: ' . BASE_URL . "/index.php?page=rollos&variante_id=$variante_id");
+            exit;
+        }
+
+        $this->db->beginTransaction();
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT stock FROM variantes WHERE id = ? AND empresa_id = ? FOR UPDATE"
+            );
+            $stmt->execute([$variante_id, $eid]);
+            $antes   = (float)$stmt->fetchColumn();
+            $despues = max(0, $antes - (float)$rollo['metros']);
+
+            $this->db->prepare(
+                "DELETE FROM rollos WHERE id = ? AND empresa_id = ?"
+            )->execute([$id, $eid]);
+
+            $this->db->prepare(
+                "UPDATE variantes SET stock = ? WHERE id = ? AND empresa_id = ?"
+            )->execute([$despues, $variante_id, $eid]);
+
+            $this->db->prepare(
+                "INSERT INTO movimientos_stock
+                 (empresa_id, variante_id, usuario_id, tipo, cantidad, stock_antes, stock_despues)
+                 VALUES (?,?,?,'ajuste_salida',?,?,?)"
+            )->execute([$eid, $variante_id, $uid, -$rollo['metros'], $antes, $despues]);
+
+            $this->db->commit();
+            $this->flashOk('Rollo eliminado y stock actualizado.');
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            $this->flashError('Error al eliminar el rollo.');
+        }
+
+        header('Location: ' . BASE_URL . "/index.php?page=rollos&variante_id=$variante_id");
+        exit;
+    }
+
+    // ──────────────────────────────────────────────────────────
     // Helpers privados
     // ──────────────────────────────────────────────────────────
+
+    private function findVariante(int $id, int $eid): array {
+        $stmt = $this->db->prepare(
+            "SELECT v.*, t.nombre AS tela_nombre
+             FROM variantes v JOIN telas t ON t.id = v.tela_id
+             WHERE v.id = ? AND v.empresa_id = ? AND v.activa = 1"
+        );
+        $stmt->execute([$id, $eid]);
+        $variante = $stmt->fetch();
+        if (!$variante) { $this->notFound(); exit; }
+        return $variante;
+    }
 
     private function findTela(int $id, int $eid): array {
         $stmt = $this->db->prepare(

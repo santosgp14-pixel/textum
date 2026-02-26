@@ -51,21 +51,37 @@ require VIEW_PATH . '/layout/header.php';
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
         <div class="form-group">
-          <label class="form-label" for="precio">Precio ($) *</label>
+          <label class="form-label" for="costo">Costo ($)</label>
+          <input type="number" id="costo" name="costo" class="form-control"
+                 value="<?= $variante['costo'] ?? '0.00' ?>"
+                 step="0.01" min="0">
+          <div class="text-xs text-muted" style="margin-top:4px">Precio de compra</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="precio_rollo">Precio rollo ($)</label>
+          <input type="number" id="precio_rollo" name="precio_rollo" class="form-control"
+                 value="<?= $variante['precio_rollo'] ?? '0.00' ?>"
+                 step="0.01" min="0">
+          <div class="text-xs text-muted" style="margin-top:4px">Venta rollo completo</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="precio">Precio fraccionado ($) *</label>
           <input type="number" id="precio" name="precio" class="form-control"
                  value="<?= $variante['precio'] ?? '0.00' ?>"
                  step="0.01" min="0" required>
+          <div class="text-xs text-muted" style="margin-top:4px">Por <?= $variante['unidad'] ?? 'metro' ?> / kilo</div>
         </div>
-        <div class="form-group">
-          <label class="form-label" for="stock">Stock actual</label>
-          <input type="number" id="stock" name="stock" class="form-control"
-                 value="<?= $variante['stock'] ?? '0.000' ?>"
-                 step="0.001" min="0">
-          <div class="text-xs text-muted" style="margin-top:4px">
-            Solo para carga inicial. Usar ajuste de stock en producción.
-          </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="stock">Stock inicial</label>
+        <input type="number" id="stock" name="stock" class="form-control"
+               value="<?= $variante['stock'] ?? '0.000' ?>"
+               step="0.001" min="0">
+        <div class="text-xs text-muted" style="margin-top:4px">
+          Solo para carga inicial. Gestioná el stock desde el módulo de <strong>Rollos</strong>.
         </div>
       </div>
 

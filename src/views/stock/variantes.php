@@ -23,7 +23,9 @@ require VIEW_PATH . '/layout/header.php';
           <th>Código barras</th>
           <th>Unidad</th>
           <th>Mínimo venta</th>
-          <th>Precio</th>
+          <th>Costo</th>
+          <th>Precio rollo</th>
+          <th>Precio frac.</th>
           <th>Stock</th>
           <th>Acciones</th>
         </tr>
@@ -35,6 +37,8 @@ require VIEW_PATH . '/layout/header.php';
           <td><code style="font-size:.82rem;background:#f3f4f6;padding:2px 6px;border-radius:4px"><?= htmlspecialchars($v['codigo_barras']) ?></code></td>
           <td><?= $v['unidad'] ?></td>
           <td><?= number_format($v['minimo_venta'], 3, ',', '.') ?> <?= $v['unidad'] ?></td>
+          <td class="text-muted">$ <?= number_format($v['costo'], 2, ',', '.') ?></td>
+          <td>$ <?= number_format($v['precio_rollo'], 2, ',', '.') ?></td>
           <td class="font-bold">$ <?= number_format($v['precio'], 2, ',', '.') ?></td>
           <td>
             <span class="<?= $v['stock'] < 5 ? 'text-danger font-bold' : 'text-success font-bold' ?>">
@@ -43,13 +47,16 @@ require VIEW_PATH . '/layout/header.php';
             <?= $v['unidad'] ?>
           </td>
           <td>
-            <a href="index.php?page=variante_editar&id=<?= $v['id'] ?>" class="btn btn-sm btn-outline">Editar</a>
+            <div class="flex gap-2">
+              <a href="index.php?page=rollos&variante_id=<?= $v['id'] ?>" class="btn btn-sm btn-primary">Rollos</a>
+              <a href="index.php?page=variante_editar&id=<?= $v['id'] ?>" class="btn btn-sm btn-outline">Editar</a>
+            </div>
           </td>
         </tr>
         <?php endforeach; ?>
         <?php if (empty($variantes)): ?>
         <tr>
-          <td colspan="7" class="text-center text-muted" style="padding:32px">
+          <td colspan="10" class="text-center text-muted" style="padding:32px">
             No hay variantes.
             <a href="index.php?page=variante_nueva&tela_id=<?= $tela['id'] ?>">Crear la primera</a>
           </td>
