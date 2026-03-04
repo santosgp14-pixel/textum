@@ -1,6 +1,6 @@
 <?php
 $esEdicion   = !empty($tela);
-$pageTitle   = $esEdicion ? 'Editar Tela' : 'Nueva Tela';
+$pageTitle   = $esEdicion ? 'Editar Producto' : 'Nuevo Producto';
 $currentPage = 'stock';
 require VIEW_PATH . '/layout/header.php';
 ?>
@@ -16,11 +16,26 @@ require VIEW_PATH . '/layout/header.php';
         <input type="hidden" name="id" value="<?= $tela['id'] ?>">
       <?php endif; ?>
 
+      <?php if (!empty($categorias)): ?>
       <div class="form-group">
-        <label class="form-label" for="nombre">Nombre de la tela *</label>
+        <label class="form-label" for="categoria_id">Categoría</label>
+        <select id="categoria_id" name="categoria_id" class="form-control">
+          <option value="">— Sin categoría —</option>
+          <?php foreach ($categorias as $cat): ?>
+          <option value="<?= $cat['id'] ?>"
+            <?= ($tela['categoria_id'] ?? 0) == $cat['id'] ? 'selected' : '' ?>>
+            <?= htmlspecialchars($cat['nombre']) ?>
+          </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <?php endif; ?>
+
+      <div class="form-group">
+        <label class="form-label" for="nombre">Nombre del producto *</label>
         <input type="text" id="nombre" name="nombre" class="form-control"
                value="<?= htmlspecialchars($tela['nombre'] ?? '') ?>"
-               placeholder="Ej: Gabardina Premium" required autofocus>
+               placeholder="Ej: Bengalina Lisa, Denim, Polar Soft" required autofocus>
       </div>
 
       <div class="form-group">
@@ -38,7 +53,7 @@ require VIEW_PATH . '/layout/header.php';
 
       <div class="flex gap-3 mt-4">
         <button type="submit" class="btn btn-primary">
-          <?= $esEdicion ? 'Guardar cambios' : 'Crear tela' ?>
+          <?= $esEdicion ? 'Guardar cambios' : 'Crear producto' ?>
         </button>
         <a href="index.php?page=stock" class="btn btn-outline">Cancelar</a>
       </div>

@@ -24,6 +24,16 @@ require VIEW_PATH . '/layout/header.php';
       <?php endif; ?>
 
       <div class="form-group">
+        <label class="form-label" for="codigo_barras">Código de barras del rollo</label>
+        <input type="text" id="codigo_barras" name="codigo_barras" class="form-control barcode-input"
+               value="<?= htmlspecialchars($rollo['codigo_barras'] ?? '') ?>"
+               placeholder="Escanear o escribir código único para este rollo">
+        <div class="text-xs text-muted" style="margin-top:4px">
+          Escanear con la pistola. Cada rollo tiene su propio código — permite buscarlo directamente en pedidos.
+        </div>
+      </div>
+
+      <div class="form-group">
         <label class="form-label" for="nro_rollo">N° de Rollo</label>
         <input type="text" id="nro_rollo" name="nro_rollo" class="form-control"
                value="<?= htmlspecialchars($rollo['nro_rollo'] ?? '') ?>"

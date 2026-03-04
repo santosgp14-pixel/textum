@@ -49,6 +49,7 @@ require VIEW_PATH . '/layout/header.php';
       <thead>
         <tr>
           <th>#</th>
+          <th>Código barras</th>
           <th>N° Rollo</th>
           <th>Cantidad</th>
           <th>Estado</th>
@@ -60,6 +61,15 @@ require VIEW_PATH . '/layout/header.php';
         <?php foreach ($rollos as $r): ?>
         <tr>
           <td class="text-muted text-sm"><?= $r['id'] ?></td>
+          <td>
+            <?php if ($r['codigo_barras']): ?>
+              <code style="font-size:.8rem;background:#f3f4f6;padding:2px 6px;border-radius:4px">
+                <?= htmlspecialchars($r['codigo_barras']) ?>
+              </code>
+            <?php else: ?>
+              <span class="text-muted">—</span>
+            <?php endif; ?>
+          </td>
           <td class="font-bold"><?= htmlspecialchars($r['nro_rollo'] ?: '—') ?></td>
           <td class="font-bold">
             <?= number_format($r['metros'], 3, ',', '.') ?>
@@ -88,7 +98,7 @@ require VIEW_PATH . '/layout/header.php';
         <?php endforeach; ?>
         <?php if (empty($rollos)): ?>
         <tr>
-          <td colspan="6" class="text-center text-muted" style="padding:32px">
+          <td colspan="7" class="text-center text-muted" style="padding:32px">
             No hay rollos cargados.
             <a href="index.php?page=rollo_nuevo&variante_id=<?= $variante['id'] ?>">Agregar el primero</a>
           </td>
@@ -98,7 +108,7 @@ require VIEW_PATH . '/layout/header.php';
       <?php if (!empty($rollos)): ?>
       <tfoot>
         <tr style="background:var(--gray-50)">
-          <td colspan="2" class="text-right font-bold" style="padding:10px 14px">TOTAL</td>
+          <td colspan="3" class="text-right font-bold" style="padding:10px 14px">TOTAL</td>
           <td class="font-bold" style="padding:10px 14px">
             <?= number_format(array_sum(array_column($rollos, 'metros')), 3, ',', '.') ?>
             <?= $variante['unidad'] ?>

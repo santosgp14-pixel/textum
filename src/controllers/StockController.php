@@ -16,23 +16,38 @@ class StockController {
 
     public function index(): void {
         Auth::require();
-        $eid   = Auth::empresaId();
-        $telas = $this->db->prepare(
-            "SELECT t.*, COUNT(v.id) AS total_variantes,
+        $eid       = Auth::empresaId();
+        $catFiltro = (int)($_GET['cat'] ?? 0);
+
+        $where  = "WHERE t.empresa_id = :eid AND t.activa = 1";
+        $params = ['eid' => $eid];
+        if ($catFiltro) {
+            $where .= " AND t.categoria_id = :cat";
+            $params['cat'] = $catFiltro;
+        }
+
+        $stmt = $this->db->prepare(
+            "SELECT t.*, cat.nombre AS categoria_nombre,
+                    COUNT(v.id) AS total_variantes,
                     SUM(CASE WHEN v.activa=1 THEN 1 ELSE 0 END) AS variantes_activas
              FROM telas t
+             LEFT JOIN categorias cat ON cat.id = t.categoria_id
              LEFT JOIN variantes v ON v.tela_id = t.id
-             WHERE t.empresa_id = ? AND t.activa = 1
+             $where
              GROUP BY t.id
-             ORDER BY t.nombre"
+             ORDER BY cat.orden, cat.nombre, t.nombre"
         );
-        $telas->execute([$eid]);
-        $telas = $telas->fetchAll();
+        $stmt->execute($params);
+        $telas = $stmt->fetchAll();
+
+        $categorias = $this->getCategorias($eid);
         require VIEW_PATH . '/stock/index.php';
     }
 
     public function nuevaTela(): void {
         Auth::require();
+        $tela       = null;
+        $categorias = $this->getCategorias(Auth::empresaId());
         require VIEW_PATH . '/stock/tela_form.php';
     }
 
@@ -40,10 +55,12 @@ class StockController {
         Auth::require();
         $eid  = Auth::empresaId();
         $id   = (int)($_POST['id'] ?? 0);
+        $catId = (int)($_POST['categoria_id'] ?? 0) ?: null;
         $data = [
-            'nombre'      => trim($_POST['nombre']      ?? ''),
-            'descripcion' => trim($_POST['descripcion'] ?? ''),
-            'composicion' => trim($_POST['composicion'] ?? ''),
+            'nombre'       => trim($_POST['nombre']       ?? ''),
+            'descripcion'  => trim($_POST['descripcion']  ?? ''),
+            'composicion'  => trim($_POST['composicion']  ?? ''),
+            'categoria_id' => $catId,
         ];
 
         if (empty($data['nombre'])) {
@@ -54,28 +71,31 @@ class StockController {
 
         if ($id > 0) {
             $stmt = $this->db->prepare(
-                "UPDATE telas SET nombre=?, descripcion=?, composicion=?
+                "UPDATE telas SET nombre=?, descripcion=?, composicion=?, categoria_id=?
                  WHERE id=? AND empresa_id=?"
             );
-            $stmt->execute([$data['nombre'], $data['descripcion'], $data['composicion'], $id, $eid]);
+            $stmt->execute([$data['nombre'], $data['descripcion'], $data['composicion'],
+                            $data['categoria_id'], $id, $eid]);
         } else {
             $stmt = $this->db->prepare(
-                "INSERT INTO telas (empresa_id, nombre, descripcion, composicion)
-                 VALUES (?,?,?,?)"
+                "INSERT INTO telas (empresa_id, nombre, descripcion, composicion, categoria_id)
+                 VALUES (?,?,?,?,?)"
             );
-            $stmt->execute([$eid, $data['nombre'], $data['descripcion'], $data['composicion']]);
+            $stmt->execute([$eid, $data['nombre'], $data['descripcion'],
+                            $data['composicion'], $data['categoria_id']]);
         }
 
-        $this->flashOk('Tela guardada correctamente.');
+        $this->flashOk('Producto guardado correctamente.');
         header('Location: ' . BASE_URL . '/index.php?page=stock');
         exit;
     }
 
     public function editarTela(): void {
         Auth::require();
-        $id   = (int)($_GET['id'] ?? 0);
-        $eid  = Auth::empresaId();
-        $tela = $this->findTela($id, $eid);
+        $id         = (int)($_GET['id'] ?? 0);
+        $eid        = Auth::empresaId();
+        $tela       = $this->findTela($id, $eid);
+        $categorias = $this->getCategorias($eid);
         require VIEW_PATH . '/stock/tela_form.php';
     }
 
@@ -205,6 +225,7 @@ class StockController {
             exit;
         }
 
+        // 1) Buscar en variantes (barcode del producto+color)
         $stmt = $this->db->prepare(
             "SELECT v.*, t.nombre AS tela_nombre
              FROM variantes v
@@ -215,12 +236,36 @@ class StockController {
         $stmt->execute([$barcode, $eid]);
         $variante = $stmt->fetch();
 
-        if (!$variante) {
+        if ($variante) {
+            echo json_encode(['ok' => true, 'variante' => $variante]);
+            exit;
+        }
+
+        // 2) Buscar en rollos (barcode individual por rollo físico)
+        $stmt = $this->db->prepare(
+            "SELECT v.*, t.nombre AS tela_nombre,
+                    r.id AS rollo_id, r.nro_rollo, r.metros AS rollo_metros
+             FROM rollos r
+             JOIN variantes v ON v.id = r.variante_id
+             JOIN telas t ON t.id = v.tela_id
+             WHERE r.codigo_barras = ? AND r.empresa_id = ?
+               AND r.estado = 'disponible' AND v.activa = 1
+             LIMIT 1"
+        );
+        $stmt->execute([$barcode, $eid]);
+        $row = $stmt->fetch();
+
+        if (!$row) {
             echo json_encode(['ok' => false, 'msg' => 'Código no encontrado']);
             exit;
         }
 
-        echo json_encode(['ok' => true, 'variante' => $variante]);
+        $rollo = [
+            'id'       => $row['rollo_id'],
+            'nro_rollo'=> $row['nro_rollo'],
+            'metros'   => $row['rollo_metros'],
+        ];
+        echo json_encode(['ok' => true, 'variante' => $row, 'rollo' => $rollo]);
         exit;
     }
 
@@ -274,9 +319,10 @@ class StockController {
         $eid         = Auth::empresaId();
         $uid         = Auth::userId();
         $id          = (int)($_POST['id']          ?? 0);
-        $variante_id = (int)($_POST['variante_id'] ?? 0);
-        $metros      = (float)($_POST['metros']    ?? 0);
-        $nro_rollo   = trim($_POST['nro_rollo']    ?? '');
+        $variante_id   = (int)($_POST['variante_id'] ?? 0);
+        $metros        = (float)($_POST['metros']    ?? 0);
+        $nro_rollo     = trim($_POST['nro_rollo']    ?? '');
+        $codigo_barras = trim($_POST['codigo_barras'] ?? '') ?: null;
 
         if ($metros <= 0) {
             $this->flashError('La cantidad debe ser mayor a 0.');
@@ -295,8 +341,8 @@ class StockController {
                 $diff = $metros - (float)$old['metros'];
 
                 $this->db->prepare(
-                    "UPDATE rollos SET nro_rollo = ?, metros = ? WHERE id = ? AND empresa_id = ?"
-                )->execute([$nro_rollo, $metros, $id, $eid]);
+                    "UPDATE rollos SET nro_rollo = ?, codigo_barras = ?, metros = ? WHERE id = ? AND empresa_id = ?"
+                )->execute([$nro_rollo, $codigo_barras, $metros, $id, $eid]);
 
                 if (abs($diff) > 0.001) {
                     $stmt = $this->db->prepare(
@@ -323,9 +369,9 @@ class StockController {
                 $despues = $antes + $metros;
 
                 $this->db->prepare(
-                    "INSERT INTO rollos (variante_id, empresa_id, nro_rollo, metros)
-                     VALUES (?,?,?,?)"
-                )->execute([$variante_id, $eid, $nro_rollo, $metros]);
+                    "INSERT INTO rollos (variante_id, empresa_id, nro_rollo, codigo_barras, metros)
+                     VALUES (?,?,?,?,?)"
+                )->execute([$variante_id, $eid, $nro_rollo, $codigo_barras, $metros]);
 
                 $this->db->prepare(
                     "UPDATE variantes SET stock = ? WHERE id = ? AND empresa_id = ?"
@@ -402,8 +448,81 @@ class StockController {
     }
 
     // ──────────────────────────────────────────────────────────
+    // CATEGORÍAS
+    // ──────────────────────────────────────────────────────────
+
+    public function categorias(): void {
+        Auth::require();
+        $eid  = Auth::empresaId();
+        $stmt = $this->db->prepare(
+            "SELECT c.*, COUNT(t.id) AS total_productos
+             FROM categorias c
+             LEFT JOIN telas t ON t.categoria_id = c.id AND t.activa = 1
+             WHERE c.empresa_id = ? AND c.activa = 1
+             GROUP BY c.id
+             ORDER BY c.orden, c.nombre"
+        );
+        $stmt->execute([$eid]);
+        $categorias = $stmt->fetchAll();
+        require VIEW_PATH . '/stock/categorias.php';
+    }
+
+    public function nuevaCategoria(): void {
+        Auth::require();
+        $categoria = null;
+        require VIEW_PATH . '/stock/categoria_form.php';
+    }
+
+    public function editarCategoria(): void {
+        Auth::require();
+        $id  = (int)($_GET['id'] ?? 0);
+        $eid = Auth::empresaId();
+        $stmt = $this->db->prepare("SELECT * FROM categorias WHERE id=? AND empresa_id=?");
+        $stmt->execute([$id, $eid]);
+        $categoria = $stmt->fetch();
+        if (!$categoria) { $this->notFound(); return; }
+        require VIEW_PATH . '/stock/categoria_form.php';
+    }
+
+    public function guardarCategoria(): void {
+        Auth::require();
+        $eid    = Auth::empresaId();
+        $id     = (int)($_POST['id']    ?? 0);
+        $nombre = trim($_POST['nombre'] ?? '');
+        $orden  = (int)($_POST['orden'] ?? 0);
+
+        if (empty($nombre)) {
+            $this->flashError('El nombre es obligatorio.');
+            header('Location: ' . BASE_URL . '/index.php?page=categorias');
+            exit;
+        }
+
+        if ($id > 0) {
+            $this->db->prepare(
+                "UPDATE categorias SET nombre=?, orden=? WHERE id=? AND empresa_id=?"
+            )->execute([$nombre, $orden, $id, $eid]);
+        } else {
+            $this->db->prepare(
+                "INSERT INTO categorias (empresa_id, nombre, orden) VALUES (?,?,?)"
+            )->execute([$eid, $nombre, $orden]);
+        }
+
+        $this->flashOk('Categoría guardada.');
+        header('Location: ' . BASE_URL . '/index.php?page=categorias');
+        exit;
+    }
+
+    // ──────────────────────────────────────────────────────────
     // Helpers privados
     // ──────────────────────────────────────────────────────────
+
+    private function getCategorias(int $eid): array {
+        $stmt = $this->db->prepare(
+            "SELECT * FROM categorias WHERE empresa_id=? AND activa=1 ORDER BY orden, nombre"
+        );
+        $stmt->execute([$eid]);
+        return $stmt->fetchAll();
+    }
 
     private function findVariante(int $id, int $eid): array {
         $stmt = $this->db->prepare(

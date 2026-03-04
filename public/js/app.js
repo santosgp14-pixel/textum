@@ -80,8 +80,10 @@ if (pedidoForm) {
           return;
         }
         varianteActual = data.variante;
-        showVariantePreview(varianteActual);
-        qtyInput.value = varianteActual.minimo_venta;
+        const rollo = data.rollo || null;
+        showVariantePreview(varianteActual, rollo);
+        // Si se escaneó un rollo individual, pre-cargar sus metros disponibles
+        qtyInput.value = rollo ? rollo.metros : varianteActual.minimo_venta;
         qtyInput.focus();
         qtyInput.select();
         clearBarcodeError();
@@ -248,7 +250,7 @@ if (pedidoForm) {
   }
 
   // ── UI helpers ──────────────────────────────────────────────
-  function showVariantePreview(v) {
+  function showVariantePreview(v, rollo = null) {
     let el = document.getElementById('variante-preview');
     if (!el) {
       el = document.createElement('div');
@@ -261,8 +263,8 @@ if (pedidoForm) {
         <strong>${v.tela_nombre}</strong> — ${v.descripcion}<br>
         <span class="text-sm">Precio: ${formatPesos(v.precio)} / ${v.unidad}
         &nbsp;|&nbsp; Stock: ${formatQty(v.stock, v.unidad)}</span>
+        ${rollo ? `<br><span class="text-sm" style="opacity:.75">📦 Rollo ${rollo.nro_rollo || ('#'+rollo.id)} — ${formatQty(rollo.metros, v.unidad)} disponibles</span>` : ''}
       </div>`;
-  }
 
   function showBarcodeError(msg) {
     let el = document.getElementById('barcode-error');

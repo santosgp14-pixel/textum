@@ -50,6 +50,12 @@ $router->add('GET',  'variante_editar',   fn() => (new StockController())->edita
 $router->add('POST', 'variante_guardar',  fn() => (new StockController())->guardarVariante());
 $router->add('GET',  'barcode_buscar',    fn() => (new StockController())->buscarBarcode());
 
+// Stock - categorías
+$router->add('GET',  'categorias',        fn() => (new StockController())->categorias());
+$router->add('GET',  'categoria_nueva',   fn() => (new StockController())->nuevaCategoria());
+$router->add('GET',  'categoria_editar',  fn() => (new StockController())->editarCategoria());
+$router->add('POST', 'categoria_guardar', fn() => (new StockController())->guardarCategoria());
+
 // Stock - rollos (sub-variantes: rollos físicos individuales)
 $router->add('GET',  'rollos',          fn() => (new StockController())->rollos());
 $router->add('GET',  'rollo_nuevo',     fn() => (new StockController())->nuevoRollo());
