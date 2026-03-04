@@ -3,12 +3,12 @@
 // URL: /migrate3_railway.php?token=mig13textum
 if (($_GET['token'] ?? '') !== 'mig13textum') { http_response_code(403); die('Forbidden'); }
 
-require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/../config/config.php';
 $pdo = Database::getInstance()->getConnection();
 
 header('Content-Type: text/plain');
 
-$sql = file_get_contents(__DIR__ . '/sql/migration_v1_3.sql');
+$sql = file_get_contents(__DIR__ . '/../sql/migration_v1_3.sql');
 $statements = array_filter(
     array_map(function($s) {
         $lines = explode("\n", trim($s));
