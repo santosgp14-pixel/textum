@@ -16,10 +16,10 @@ require VIEW_PATH . '/layout/header.php';
           <th>#</th>
           <th>Fecha</th>
           <th>Estado</th>
-          <th>Items</th>
+          <th class="hide-mobile">Items</th>
           <th>Total</th>
           <th>Cliente</th>
-          <th>Vendedor</th>
+          <th class="hide-mobile">Vendedor</th>
           <th>Acción</th>
         </tr>
       </thead>
@@ -29,7 +29,7 @@ require VIEW_PATH . '/layout/header.php';
           <td class="font-bold">#<?= $p['id'] ?></td>
           <td class="text-sm"><?= date('d/m/Y H:i', strtotime($p['created_at'])) ?></td>
           <td><span class="badge badge-<?= $p['estado'] ?>"><?= ucfirst($p['estado']) ?></span></td>
-          <td><?= (int)$p['total_items'] ?></td>
+          <td class="hide-mobile"><?= (int)$p['total_items'] ?></td>
           <td class="font-bold">$ <?= number_format($p['total'], 2, ',', '.') ?></td>
           <td class="text-sm">
             <?php if (!empty($p['cliente_nombre'])): ?>
@@ -38,7 +38,7 @@ require VIEW_PATH . '/layout/header.php';
               <span class="text-muted">—</span>
             <?php endif; ?>
           </td>
-          <td class="text-sm"><?= htmlspecialchars($p['vendedor']) ?></td>
+          <td class="text-sm hide-mobile"><?= htmlspecialchars($p['vendedor']) ?></td>
           <td>
             <?php if ($p['estado'] === 'abierto'): ?>
               <a href="index.php?page=pedido_abierto&id=<?= $p['id'] ?>" class="btn btn-sm btn-warning">Abrir</a>

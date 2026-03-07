@@ -530,6 +530,15 @@ tbody tr:last-child td { border-bottom: none; }
   100% { top: 15%; }
 }
 
+/* ── Mobile: ocultar columnas no esenciales en tablas ────────── */
+@media (max-width: 599px) {
+  .hide-mobile { display: none !important; }
+  /* Inputs del scanner: ancho completo en pantallas pequeñas */
+  .barcode-zone .form-control { max-width: 100% !important; }
+  /* Nombre de usuario en topbar oculto en pantallas muy pequeñas */
+  .topbar-user { display: none; }
+}
+
 /* Print */
 @media print {
   .sidebar, .topbar, .btn, .barcode-zone { display: none !important; }

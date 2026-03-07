@@ -265,6 +265,7 @@ if (pedidoForm) {
         &nbsp;|&nbsp; Stock: ${formatQty(v.stock, v.unidad)}</span>
         ${rollo ? `<br><span class="text-sm" style="opacity:.75">📦 Rollo ${rollo.nro_rollo || ('#'+rollo.id)} — ${formatQty(rollo.metros, v.unidad)} disponibles</span>` : ''}
       </div>`;
+  }
 
   function showBarcodeError(msg) {
     let el = document.getElementById('barcode-error');
@@ -283,8 +284,8 @@ if (pedidoForm) {
     document.getElementById('barcode-error')?.remove();
   }
 
-  // Auto-focus barcode input
-  barcodeInput.focus();
+  // Auto-focus barcode input (solo en escritorio; en móvil el teclado no debe aparecer automáticamente)
+  if (!('ontouchstart' in window)) barcodeInput.focus();
 
   // ── Escáner de cámara ───────────────────────────────────────
   const btnCamara = document.getElementById('btn-camara');
