@@ -237,7 +237,7 @@ class StockController {
         $variante = $stmt->fetch();
 
         if ($variante) {
-            echo json_encode(['ok' => true, 'variante' => $variante]);
+            echo json_encode(['ok' => true, 'variante' => $this->sanitizeVariante($variante)]);
             exit;
         }
 
@@ -265,7 +265,7 @@ class StockController {
             'nro_rollo'=> $row['nro_rollo'],
             'metros'   => $row['rollo_metros'],
         ];
-        echo json_encode(['ok' => true, 'variante' => $row, 'rollo' => $rollo]);
+        echo json_encode(['ok' => true, 'variante' => $this->sanitizeVariante($row), 'rollo' => $rollo]);
         exit;
     }
 
@@ -548,6 +548,23 @@ class StockController {
 
     private function flashOk(string $msg): void    { $_SESSION['flash_ok']    = $msg; }
     private function flashError(string $msg): void { $_SESSION['flash_error'] = $msg; }
+
+    /** Devuelve solo los campos necesarios de una variante para el frontend (no expone costo) */
+    private function sanitizeVariante(array $v): array {
+        return [
+            'id'          => $v['id'],
+            'tela_id'     => $v['tela_id'],
+            'tela_nombre' => $v['tela_nombre'],
+            'descripcion' => $v['descripcion'],
+            'unidad'      => $v['unidad'],
+            'precio'      => $v['precio'],
+            'precio_rollo'=> $v['precio_rollo'],
+            'minimo_venta'=> $v['minimo_venta'],
+            'stock'       => $v['stock'],
+            'codigo_barras'=> $v['codigo_barras'],
+        ];
+    }
+
     private function notFound(): void {
         http_response_code(404);
         require VIEW_PATH . '/errors/404.php';

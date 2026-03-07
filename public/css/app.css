@@ -82,9 +82,11 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   border-bottom: 1px solid rgba(255,255,255,.10);
 }
 .sidebar-logo h1 {
-  font-size: 1.4rem;
-  font-weight: 800;
-  letter-spacing: .5px;
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
   color: var(--white);
 }
 .sidebar-logo span { color: var(--blue-400); }
@@ -111,7 +113,8 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   color: var(--white);
 }
 .sidebar-nav a.active { border-right: 3px solid var(--blue-400); }
-.sidebar-nav .nav-icon { width: 18px; text-align: center; opacity: .8; }
+.sidebar-nav .nav-icon { width: 18px; text-align: center; opacity: .8; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.sidebar-nav .nav-icon svg { display: block; }
 
 .sidebar-footer {
   padding: 16px 20px;

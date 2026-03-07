@@ -13,7 +13,8 @@ class BalanceController {
     public function index(): void {
         Auth::require();
         $eid  = Auth::empresaId();
-        $fecha = $_GET['fecha'] ?? date('Y-m-d');
+        $rawFecha = $_GET['fecha'] ?? date('Y-m-d');
+        $fecha = (preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFecha) && strtotime($rawFecha)) ? $rawFecha : date('Y-m-d');
 
         // Ingresos del día (ventas confirmadas)
         $stmt = $this->db->prepare(
