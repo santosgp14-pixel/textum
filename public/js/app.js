@@ -226,7 +226,7 @@ if (pedidoForm) {
           <div class="text-sm text-muted">${item.descripcion}</div>
           <div class="text-xs text-muted">${item.codigo_barras}</div>
         </td>
-        <td>${item.unidad}</td>
+        <td class="hide-mobile">${item.unidad}</td>
         <td>
           <input type="number"
             class="qty-inline"
@@ -238,7 +238,7 @@ if (pedidoForm) {
             data-minimo="0.001"
             style="width:80px;padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;text-align:center">
         </td>
-        <td>${formatPesos(item.precio_unit)}</td>
+        <td class="hide-mobile">${formatPesos(item.precio_unit)}</td>
         <td class="font-bold">${formatPesos(item.subtotal)}</td>
         <td>
           <button class="btn btn-sm btn-danger" data-del-item="${item.id}">✕</button>

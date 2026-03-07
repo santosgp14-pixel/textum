@@ -55,7 +55,7 @@ require VIEW_PATH . '/layout/header.php';
         <p class="text-sm text-muted mb-4" style="margin-bottom:12px">
           Posicione el cursor aquí y escanee, o escriba el código manualmente.
         </p>
-        <div class="flex gap-3 items-center flex-wrap" style="justify-content:center">
+        <div class="barcode-inputs flex gap-3 items-center flex-wrap" style="justify-content:center">
           <input type="text" id="barcode-input" class="form-control barcode-input"
                  placeholder="Código de barras..." autocomplete="off"
                  style="max-width:280px">
@@ -79,9 +79,9 @@ require VIEW_PATH . '/layout/header.php';
             <thead>
               <tr>
                 <th>Producto</th>
-                <th>Unidad</th>
+                <th class="hide-mobile">Unidad</th>
                 <th>Cantidad</th>
-                <th>Precio unit.</th>
+                <th class="hide-mobile">Precio unit.</th>
                 <th>Subtotal</th>
                 <th></th>
               </tr>
@@ -101,7 +101,7 @@ require VIEW_PATH . '/layout/header.php';
                     <div class="text-sm text-muted"><?= htmlspecialchars($item['descripcion']) ?></div>
                     <div class="text-xs text-muted"><?= $item['codigo_barras'] ?></div>
                   </td>
-                  <td><?= $item['unidad'] ?></td>
+                  <td class="hide-mobile"><?= $item['unidad'] ?></td>
                   <td>
                     <input type="number" class="qty-inline"
                            value="<?= $item['cantidad'] ?>"
@@ -111,7 +111,7 @@ require VIEW_PATH . '/layout/header.php';
                            data-minimo="0.001"
                            style="width:80px;padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;text-align:center">
                   </td>
-                  <td>$ <?= number_format($item['precio_unit'], 2, ',', '.') ?></td>
+                  <td class="hide-mobile">$ <?= number_format($item['precio_unit'], 2, ',', '.') ?></td>
                   <td class="font-bold">$ <?= number_format($item['subtotal'], 2, ',', '.') ?></td>
                   <td>
                     <button class="btn btn-sm btn-danger" data-del-item="<?= $item['id'] ?>">✕</button>

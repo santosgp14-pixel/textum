@@ -536,10 +536,17 @@ tbody tr:last-child td { border-bottom: none; }
 /* ── Mobile: ocultar columnas no esenciales en tablas ────────── */
 @media (max-width: 599px) {
   .hide-mobile { display: none !important; }
-  /* Inputs del scanner: ancho completo en pantallas pequeñas */
-  .barcode-zone .form-control { max-width: 100% !important; }
   /* Nombre de usuario en topbar oculto en pantallas muy pequeñas */
   .topbar-user { display: none; }
+  /* Zona de escaneo: apilar inputs en columna */
+  .barcode-zone .barcode-inputs {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .barcode-zone .form-control { max-width: 100% !important; width: 100% !important; }
+  .barcode-zone .btn { width: 100%; justify-content: center; }
+  /* Cantidad editable en tabla: ancho automático en mobile */
+  .qty-inline { width: 64px !important; }
 }
 
 /* Print */
