@@ -46,7 +46,7 @@ $catFiltro = (int)($_GET['cat'] ?? 0);
           <td>
             <div class="font-bold"><?= htmlspecialchars($t['nombre']) ?></div>
             <?php if ($t['descripcion']): ?>
-              <div class="text-sm text-muted"><?= htmlspecialchars($t['descripcion']) ?></div>
+              <div class="text-sm text-muted hide-mobile"><?= htmlspecialchars($t['descripcion']) ?></div>
             <?php endif; ?>
           </td>
           <td>
