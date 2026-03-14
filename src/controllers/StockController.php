@@ -70,7 +70,6 @@ class StockController {
             'rinde'        => (float)($_POST['rinde']      ?? 0) ?: null,
             'tipo'         => in_array($_POST['tipo'] ?? '', ['punto','plano']) ? $_POST['tipo'] : null,
             'subcategoria' => in_array($_POST['subcategoria'] ?? '', ['atemporal','invierno','verano']) ? $_POST['subcategoria'] : null,
-            'categoria_id' => $catId,
             'precio'       => (float)($_POST['precio']    ?? 0),
             'unidad'       => $unidad,
             'minimo_venta' => max(0.001, (float)($_POST['minimo_venta'] ?? 1)),
@@ -99,13 +98,13 @@ class StockController {
             if ($id > 0) {
                 $sql = "UPDATE telas
                         SET nombre=?, descripcion=?, rinde=?,
-                            tipo=?, subcategoria=?, categoria_id=?,
+                            tipo=?, subcategoria=?,
                             precio=?, unidad=?, minimo_venta=?"
                       . ($imagenUrl !== null ? ', imagen_url=?' : '')
                       . " WHERE id=? AND empresa_id=?";
                 $params = [
                     $data['nombre'], $data['descripcion'], $data['rinde'],
-                    $data['tipo'], $data['subcategoria'], $data['categoria_id'],
+                    $data['tipo'], $data['subcategoria'],
                     $data['precio'], $data['unidad'], $data['minimo_venta'],
                 ];
                 if ($imagenUrl !== null) $params[] = $imagenUrl;
@@ -116,14 +115,14 @@ class StockController {
                 $stmt = $this->db->prepare(
                     "INSERT INTO telas
                      (empresa_id, nombre, descripcion, rinde,
-                      tipo, subcategoria, categoria_id,
+                      tipo, subcategoria,
                       precio, unidad, minimo_venta, imagen_url)
-                     VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+                     VALUES (?,?,?,?,?,?,?,?,?,?)"
                 );
                 $stmt->execute([
                     $eid,
                     $data['nombre'], $data['descripcion'], $data['rinde'],
-                    $data['tipo'], $data['subcategoria'], $data['categoria_id'],
+                    $data['tipo'], $data['subcategoria'],
                     $data['precio'], $data['unidad'], $data['minimo_venta'], $imagenUrl,
                 ]);
                 $id = (int)$this->db->lastInsertId();

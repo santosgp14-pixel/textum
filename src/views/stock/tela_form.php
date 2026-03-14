@@ -100,20 +100,6 @@ require VIEW_PATH . '/layout/header.php';
           </select>
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label" for="categoria_id">Tipo de tela <span class="text-muted text-xs">(opcional)</span></label>
-        <select id="categoria_id" name="categoria_id" class="form-control">
-          <option value="">— Sin categoría —</option>
-          <?php foreach ($categorias as $cat): ?>
-          <option value="<?= $cat['id'] ?>"
-                  data-tipo="<?= htmlspecialchars($cat['tipo'] ?? '') ?>"
-                  <?= ($tela['categoria_id'] ?? null) == $cat['id'] ? 'selected' : '' ?>>
-            <?= htmlspecialchars($cat['nombre']) ?>
-          </option>
-          <?php endforeach; ?>
-        </select>
-        <div class="text-xs text-muted mt-1">Ej: Frisa, Tricot, Denim, Poplin…</div>
-      </div>
       <!-- ── DATOS DEL PRODUCTO ─────────────────────────── -->
       <div class="section-title">Datos del producto</div>
 
@@ -323,13 +309,11 @@ require VIEW_PATH . '/layout/header.php';
   </div>
 </div>
 
-<script>const categoriasData = <?= json_encode(array_values(array_map(fn($c) => ['id'=>(int)$c['id'],'nombre'=>$c['nombre'],'tipo'=>$c['tipo']??''], $categorias)), JSON_HEX_TAG|JSON_HEX_AMP) ?>;</script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 (function () {
   const tipoSel   = document.getElementById('tipo');
   const unidadSel = document.getElementById('unidad');
-  const catSel    = document.getElementById('categoria_id');
   const fmt = n => new Intl.NumberFormat('es-AR', { style:'currency', currency:'ARS', minimumFractionDigits:2 }).format(n);
   const precioInput = document.getElementById('precio');
   const rindeInput  = document.getElementById('rinde');
@@ -399,7 +383,7 @@ require VIEW_PATH . '/layout/header.php';
       `${fmt(precioRollo)} ÷ <strong>${metros.toFixed(3)} m</strong> = ` +
       `<strong style="color:var(--primary,#2563eb)">${fmt(precioMetro)} / metro</strong>`;
   }
-  // ── Tipo → unidad auto + filtro categorías + labels ─────────
+  // ── Tipo → unidad auto + labels ──────────────────────────
   function updateRolloLabels() {
     const lbl = tipoSel?.value === 'punto' ? 'Kilos *' : 'Metros *';
     document.querySelectorAll('.rollo-cantidad-label').forEach(el => el.textContent = lbl);
@@ -409,14 +393,6 @@ require VIEW_PATH . '/layout/header.php';
     if (unidadSel) {
       if (t === 'punto') unidadSel.value = 'kilo';
       if (t === 'plano') unidadSel.value = 'metro';
-    }
-    if (catSel && typeof categoriasData !== 'undefined') {
-      Array.from(catSel.options).forEach(opt => {
-        if (!opt.value) return;
-        const tipoCat = opt.dataset.tipo || '';
-        opt.hidden = tipoCat !== '' && tipoCat !== t;
-      });
-      if (catSel.selectedOptions[0]?.hidden) catSel.value = '';
     }
     const hint = document.getElementById('minimo-hint');
     if (hint) hint.textContent = t === 'punto' ? 'Ej: 2 kg mínimo' : t === 'plano' ? 'Ej: 5 metros mínimo' : 'Ej: 1.000';
