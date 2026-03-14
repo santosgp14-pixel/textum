@@ -90,6 +90,7 @@ class PedidosController {
         $pedido_id  = (int)($_POST['pedido_id']  ?? 0);
         $variante_id= (int)($_POST['variante_id']?? 0);
         $cantidad   = (float)($_POST['cantidad'] ?? 0);
+        $precioCustom = (float)($_POST['precio_unit'] ?? 0);
 
         // Validaciones básicas
         $pedido = $this->findPedido($pedido_id, $eid);
@@ -120,22 +121,25 @@ class PedidosController {
 
         // Verificar si ya existe el item en el pedido
         $stmt = $this->db->prepare(
-            "SELECT id FROM pedido_items WHERE pedido_id = ? AND variante_id = ?"
+            "SELECT id, precio_unit FROM pedido_items WHERE pedido_id = ? AND variante_id = ?"
         );
         $stmt->execute([$pedido_id, $variante_id]);
         $existente = $stmt->fetch();
 
-        $subtotal = round($cantidad * $variante['precio'], 2);
-
         if ($existente) {
+            // Actualizar; si viene precio_unit, actualizarlo también
+            $precio   = $precioCustom > 0 ? $precioCustom : (float)$existente['precio_unit'];
+            $subtotal = round($cantidad * $precio, 2);
             $this->db->prepare(
-                "UPDATE pedido_items SET cantidad = ?, subtotal = ? WHERE id = ?"
-            )->execute([$cantidad, $subtotal, $existente['id']]);
+                "UPDATE pedido_items SET cantidad = ?, precio_unit = ?, subtotal = ? WHERE id = ?"
+            )->execute([$cantidad, $precio, $subtotal, $existente['id']]);
         } else {
+            $precio   = $precioCustom > 0 ? $precioCustom : (float)$variante['precio'];
+            $subtotal = round($cantidad * $precio, 2);
             $this->db->prepare(
                 "INSERT INTO pedido_items (pedido_id, variante_id, cantidad, precio_unit, subtotal)
                  VALUES (?,?,?,?,?)"
-            )->execute([$pedido_id, $variante_id, $cantidad, $variante['precio'], $subtotal]);
+            )->execute([$pedido_id, $variante_id, $cantidad, $precio, $subtotal]);
         }
 
         // Recalcular total del pedido
@@ -409,8 +413,28 @@ class PedidosController {
         exit;
     }
 
-    // ──────────────────────────────────────────────────────────
-    // Detalle de pedido (cualquier estado)
+    // ──────────────────────────────────────────────────────────    // Catálogo de variantes activas con stock (AJAX GET)
+    // ──────────────────────────────────────────────────────
+
+    public function catalogoVariantes(): void {
+        Auth::require();
+        header('Content-Type: application/json');
+        $eid = Auth::empresaId();
+        $stmt = $this->db->prepare(
+            "SELECT v.id, v.descripcion, v.unidad, v.precio, v.precio_rollo,
+                    v.minimo_venta, v.stock,
+                    t.id AS tela_id, t.nombre AS tela_nombre, t.imagen_url, t.tipo
+             FROM variantes v
+             JOIN telas t ON t.id = v.tela_id
+             WHERE v.empresa_id = ? AND v.activa = 1 AND v.stock > 0
+             ORDER BY t.nombre, v.descripcion"
+        );
+        $stmt->execute([$eid]);
+        echo json_encode(['ok' => true, 'variantes' => $stmt->fetchAll()]);
+        exit;
+    }
+
+    // ──────────────────────────────────────────────────────    // Detalle de pedido (cualquier estado)
     // ──────────────────────────────────────────────────────────
 
     public function detalle(): void {

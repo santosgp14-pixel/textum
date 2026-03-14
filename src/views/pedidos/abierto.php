@@ -49,6 +49,30 @@ require VIEW_PATH . '/layout/header.php';
     <!-- IZQUIERDA: Escaner + tabla de items -->
     <div>
 
+      <!-- Toggle de vista -->
+      <div class="flex gap-2 mb-3 flex-wrap" style="align-items:center">
+        <span class="text-sm" style="font-weight:600;line-height:2rem">Agregar artículo:</span>
+        <button type="button" class="btn btn-sm btn-primary btn-vista" data-vista="scanner">⌨ Escáner</button>
+        <button type="button" class="btn btn-sm btn-outline btn-vista" data-vista="imagenes">🖼 Imágenes</button>
+        <button type="button" class="btn btn-sm btn-outline btn-vista" data-vista="lista">☰ Lista</button>
+      </div>
+
+      <!-- Catálogo de productos -->
+      <div id="catalogo-panel" style="display:none;margin-bottom:16px">
+        <div class="flex gap-2 mb-3 flex-wrap" style="align-items:center">
+          <input type="text" id="cat-search" class="form-control" placeholder="Buscar producto..." style="max-width:220px">
+          <select id="cat-tipo" class="form-control" style="max-width:130px">
+            <option value="">Todos</option>
+            <option value="punto">Punto</option>
+            <option value="plano">Plano</option>
+          </select>
+          <span id="cat-count" class="text-xs text-muted"></span>
+        </div>
+        <div style="max-height:480px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;background:#fff">
+          <div id="cat-grid" style="padding:4px"></div>
+        </div>
+      </div>
+
       <!-- Zona escaneo -->
       <div class="barcode-zone mb-4">
         <h3>📦 Escanear código de barras</h3>
@@ -57,12 +81,8 @@ require VIEW_PATH . '/layout/header.php';
         </p>
         <div class="barcode-inputs flex gap-3 items-center flex-wrap" style="justify-content:center">
           <input type="text" id="barcode-input" class="form-control barcode-input"
-                 placeholder="Código de barras..." autocomplete="off"
-                 style="max-width:280px">
-          <input type="number" id="qty-input" class="form-control"
-                 placeholder="Cantidad" step="0.001" min="0.001"
-                 style="max-width:120px">
-          <button id="btn-add-item" class="btn btn-primary">+ Agregar</button>
+                 placeholder="Código de barras… escanear o escribir" autocomplete="off"
+                 style="max-width:320px">
           <button type="button" id="btn-camara" class="btn btn-outline" title="Escanear con cámara">
             📷 Cámara
           </button>
@@ -157,6 +177,44 @@ require VIEW_PATH . '/layout/header.php';
 
   </div>
 
+  <!-- Modal: Configurar venta de ítem -->
+  <div id="modal-add-item" class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-box" style="max-width:420px">
+      <div class="flex justify-between items-start" style="margin-bottom:14px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:1rem;font-weight:700;margin-bottom:4px" id="mai-nombre">—</div>
+          <div class="text-sm text-muted" id="mai-stock"></div>
+        </div>
+        <button type="button" id="btn-mai-close" class="btn-icon" style="font-size:1.2rem;margin-left:12px">✕</button>
+      </div>
+      <!-- Tipo de venta -->
+      <div class="flex gap-1" style="margin-bottom:16px;flex-wrap:wrap">
+        <button type="button" class="btn btn-sm btn-primary"  data-mai-tab="fraccionado">Fraccionado</button>
+        <button type="button" class="btn btn-sm btn-outline"  data-mai-tab="rollo">Por rollo</button>
+        <button type="button" class="btn btn-sm btn-outline"  data-mai-tab="otro">Otro</button>
+      </div>
+      <!-- Cantidad -->
+      <div class="form-group">
+        <label class="form-label">Cantidad (<span id="mai-unidad">—</span>)</label>
+        <input type="number" id="mai-qty" class="form-control" step="0.001" min="0.001" placeholder="0.000">
+        <div class="text-xs text-muted mt-1" id="mai-qty-hint"></div>
+      </div>
+      <!-- Precio -->
+      <div class="form-group">
+        <label class="form-label">Precio unitario ($)
+          <span class="text-xs text-muted" style="font-weight:400"> — editable para esta venta</span>
+        </label>
+        <input type="number" id="mai-precio" class="form-control" step="0.01" min="0" placeholder="0.00">
+      </div>
+      <!-- Subtotal -->
+      <div style="background:var(--blue-50,#eff6ff);border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:.9rem">
+        Subtotal estimado: <strong id="mai-subtotal">$ 0,00</strong>
+      </div>
+      <button type="button" id="btn-mai-agregar" class="btn btn-primary w-full">＋ Agregar al pedido</button>
+    </div>
+  </div>
+
   <!-- Modal: Escáner de cámara -->
   <div id="modal-camara" class="modal">
     <div class="modal-backdrop"></div>
@@ -178,5 +236,6 @@ require VIEW_PATH . '/layout/header.php';
   </div>
 </div>
 
+<script>window._base = '<?= BASE_URL ?>';</script>
 <script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
 <?php require VIEW_PATH . '/layout/footer.php'; ?>

@@ -35,7 +35,8 @@ $router->add('POST', 'login',   fn() => (new AuthController())->loginPost());
 $router->add('GET',  'logout',  fn() => (new AuthController())->logout());
 
 // Dashboard
-$router->add('GET',  'dashboard', fn() => (new DashboardController())->index());
+$router->add('GET',  'dashboard',  fn() => (new DashboardController())->index());
+$router->add('GET',  'productos',  fn() => (new ProductosController())->index());
 
 // Stock - telas
 $router->add('GET',  'stock',          fn() => (new StockController())->index());
@@ -73,6 +74,7 @@ $router->add('POST', 'pedido_confirmar', fn() => (new PedidosController())->conf
 $router->add('POST', 'pedido_anular',      fn() => (new PedidosController())->anular());
 $router->add('GET',  'pedido_detalle',     fn() => (new PedidosController())->detalle());
 $router->add('POST', 'pedido_cliente_set', fn() => (new PedidosController())->setCliente());
+$router->add('GET',  'pedido_catalogo',    fn() => (new PedidosController())->catalogoVariantes());
 
 // Clientes
 $router->add('GET',  'clientes',        fn() => (new ClientesController())->index());

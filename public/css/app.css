@@ -498,7 +498,37 @@ tbody tr:last-child td { border-bottom: none; }
 .cliente-item:last-child { border-bottom: none; }
 .cliente-item:hover { background: var(--blue-50); }
 
-/* ── Escáner de cámara ─────────────────────────────────────── */
+/* ── Escáner de cámara ─────────────────────────────────────── *//* ── Catálogo de productos ─────────────────────────── */
+.cat-imagen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  padding: 8px;
+}
+.cat-card {
+  cursor: pointer;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  transition: box-shadow .15s;
+}
+.cat-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.12); }
+.cat-img {
+  height: 100px;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.cat-img img { width: 100%; height: 100%; object-fit: cover; }
+.cat-img-placeholder { font-size: 2rem; opacity: .3; }
+.cat-info { padding: 8px; }
+.cat-nombre { font-size: .8rem; font-weight: 600; line-height: 1.3; }
+.cat-desc { font-size: .73rem; color: #6b7280; margin-top: 2px; }
+.cat-precio { font-size: .8rem; font-weight: 700; color: var(--primary, #2563eb); margin-top: 4px; }
+.cat-stock { font-size: .72rem; color: #9ca3af; margin-top: 2px; }
 .modal-camara-box {
   max-width: 520px;
   padding: 20px;
