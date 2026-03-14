@@ -58,23 +58,22 @@ class StockController {
         $uid  = Auth::userId();
         $id   = (int)($_POST['id'] ?? 0);
 
-        $catId    = (int)($_POST['categoria_id']    ?? 0) ?: null;
+        $catId    = (int)($_POST['categoria_id']  ?? 0) ?: null;
         $subcatId = (int)($_POST['subcategoria_id'] ?? 0) ?: null;
 
         $unidad = in_array($_POST['unidad'] ?? '', ['metro','kilo','rollo'])
                   ? $_POST['unidad'] : 'metro';
 
         $data = [
-            'nombre'         => trim($_POST['nombre']         ?? ''),
-            'descripcion'    => trim($_POST['descripcion']    ?? ''),
-            'composicion'    => trim($_POST['composicion']    ?? ''),
-            'categoria_id'   => $catId,
-            'subcategoria_id'=> $subcatId,
-            'tipo'           => in_array($_POST['tipo'] ?? '', ['punto','plano']) ? $_POST['tipo'] : null,
-            'codigo_barras'  => trim($_POST['codigo_barras']  ?? '') ?: null,
-            'costo'          => (float)($_POST['costo']       ?? 0),
-            'precio'         => (float)($_POST['precio']      ?? 0),
-            'unidad'         => $unidad,
+            'nombre'       => trim($_POST['nombre']       ?? ''),
+            'descripcion'  => trim($_POST['descripcion']  ?? ''),
+            'rinde'        => (float)($_POST['rinde']      ?? 0) ?: null,
+            'tipo'         => in_array($_POST['tipo'] ?? '', ['punto','plano']) ? $_POST['tipo'] : null,
+            'subcategoria' => trim($_POST['subcategoria'] ?? '') ?: null,
+            'codigo_barras'=> trim($_POST['codigo_barras'] ?? '') ?: null,
+            'costo'        => (float)($_POST['costo']     ?? 0),
+            'precio'       => (float)($_POST['precio']    ?? 0),
+            'unidad'       => $unidad,
         ];
 
         if (empty($data['nombre'])) {
@@ -99,14 +98,14 @@ class StockController {
         try {
             if ($id > 0) {
                 $sql = "UPDATE telas
-                        SET nombre=?, descripcion=?, composicion=?,
-                            categoria_id=?, subcategoria_id=?, tipo=?,
+                        SET nombre=?, descripcion=?, rinde=?,
+                            tipo=?, subcategoria=?,
                             codigo_barras=?, costo=?, precio=?, unidad=?"
                       . ($imagenUrl !== null ? ', imagen_url=?' : '')
                       . " WHERE id=? AND empresa_id=?";
                 $params = [
-                    $data['nombre'], $data['descripcion'], $data['composicion'],
-                    $data['categoria_id'], $data['subcategoria_id'], $data['tipo'],
+                    $data['nombre'], $data['descripcion'], $data['rinde'],
+                    $data['tipo'], $data['subcategoria'],
                     $data['codigo_barras'], $data['costo'], $data['precio'], $data['unidad'],
                 ];
                 if ($imagenUrl !== null) $params[] = $imagenUrl;
@@ -116,15 +115,15 @@ class StockController {
             } else {
                 $stmt = $this->db->prepare(
                     "INSERT INTO telas
-                     (empresa_id, nombre, descripcion, composicion,
-                      categoria_id, subcategoria_id, tipo,
+                     (empresa_id, nombre, descripcion, rinde,
+                      tipo, subcategoria,
                       codigo_barras, costo, precio, unidad, imagen_url)
-                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
+                     VALUES (?,?,?,?,?,?,?,?,?,?,?)"
                 );
                 $stmt->execute([
                     $eid,
-                    $data['nombre'], $data['descripcion'], $data['composicion'],
-                    $data['categoria_id'], $data['subcategoria_id'], $data['tipo'],
+                    $data['nombre'], $data['descripcion'], $data['rinde'],
+                    $data['tipo'], $data['subcategoria'],
                     $data['codigo_barras'], $data['costo'], $data['precio'],
                     $data['unidad'], $imagenUrl,
                 ]);
@@ -585,10 +584,10 @@ class StockController {
         $stmt = $this->db->prepare(
             "SELECT c.*, COUNT(t.id) AS total_productos
              FROM categorias c
-             LEFT JOIN telas t ON (t.categoria_id = c.id OR t.subcategoria_id = c.id) AND t.activa = 1
+             LEFT JOIN telas t ON t.categoria_id = c.id AND t.activa = 1
              WHERE c.empresa_id = ? AND c.activa = 1
              GROUP BY c.id
-             ORDER BY ISNULL(c.parent_id), c.parent_id, c.orden, c.nombre"
+             ORDER BY c.orden, c.nombre"
         );
         $stmt->execute([$eid]);
         $categorias = $stmt->fetchAll();
@@ -628,15 +627,16 @@ class StockController {
         }
 
         $parentId = (int)($_POST['parent_id'] ?? 0) ?: null;
+        $tipo     = in_array($_POST['tipo'] ?? '', ['punto','plano']) ? $_POST['tipo'] : null;
 
         if ($id > 0) {
             $this->db->prepare(
-                "UPDATE categorias SET nombre=?, orden=?, parent_id=? WHERE id=? AND empresa_id=?"
-            )->execute([$nombre, $orden, $parentId, $id, $eid]);
+                "UPDATE categorias SET nombre=?, orden=?, parent_id=?, tipo=? WHERE id=? AND empresa_id=?"
+            )->execute([$nombre, $orden, $parentId, $tipo, $id, $eid]);
         } else {
             $this->db->prepare(
-                "INSERT INTO categorias (empresa_id, nombre, orden, parent_id) VALUES (?,?,?,?)"
-            )->execute([$eid, $nombre, $orden, $parentId]);
+                "INSERT INTO categorias (empresa_id, nombre, orden, parent_id, tipo) VALUES (?,?,?,?,?)"
+            )->execute([$eid, $nombre, $orden, $parentId, $tipo]);
         }
 
         $this->flashOk('Categoría guardada.');
@@ -650,10 +650,25 @@ class StockController {
 
     private function getCategorias(int $eid): array {
         $stmt = $this->db->prepare(
-            "SELECT * FROM categorias WHERE empresa_id=? AND activa=1 ORDER BY ISNULL(parent_id), parent_id, orden, nombre"
+            "SELECT * FROM categorias WHERE empresa_id=? AND activa=1 ORDER BY orden, nombre"
         );
         $stmt->execute([$eid]);
-        return $stmt->fetchAll();
+        $rows = $stmt->fetchAll();
+        // Sort: roots first, then subs grouped under their parent (safe before/after migration)
+        $roots = array_filter($rows, fn($c) => empty($c['parent_id'] ?? null));
+        $subs  = array_filter($rows, fn($c) => !empty($c['parent_id'] ?? null));
+        $sorted = [];
+        foreach ($roots as $r) {
+            $sorted[] = $r;
+            foreach ($subs as $s) {
+                if ((int)$s['parent_id'] === (int)$r['id']) $sorted[] = $s;
+            }
+        }
+        // Append any subs whose parent wasn't found
+        foreach ($subs as $s) {
+            if (!in_array($s, $sorted, true)) $sorted[] = $s;
+        }
+        return $sorted;
     }
 
     /** Guarda imagen subida y devuelve la ruta relativa, o false si hay error */

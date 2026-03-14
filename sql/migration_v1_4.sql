@@ -1,18 +1,21 @@
 -- ============================================================
 -- TEXTUM - Migración v1.4
--- Agrega: tipo/barcode/costo/precio/unidad/imagen en telas
---         sub-categorías (parent_id en categorias)
+-- Agrega: rinde/barcode/costo/precio/unidad/imagen en telas
+--         sub-categorías de texto + tipo/parent_id en categorias
 --         unidad 'rollo' en variantes
 -- ============================================================
 
 -- Nuevos campos en telas
 ALTER TABLE `telas`
   ADD COLUMN `tipo`            ENUM('punto','plano') DEFAULT NULL
-                               COMMENT 'Tipo de tejido: punto (jersey, polar) o plano (denim, poplin)'
+                               COMMENT 'Tipo de tejido: punto o plano'
+                               AFTER `empresa_id`,
+  ADD COLUMN `subcategoria`    VARCHAR(100) DEFAULT NULL
+                               COMMENT 'Sub-categoría libre (ej: Bengalina, Polar, Denim)'
                                AFTER `categoria_id`,
-  ADD COLUMN `subcategoria_id` INT UNSIGNED DEFAULT NULL
-                               COMMENT 'Sub-categoría del producto'
-                               AFTER `tipo`,
+  ADD COLUMN `rinde`           DECIMAL(8,3) DEFAULT NULL
+                               COMMENT 'Metros que rinde 1 kilo de tela'
+                               AFTER `subcategoria`,
   ADD COLUMN `codigo_barras`   VARCHAR(100) DEFAULT NULL
                                COMMENT 'Código de barras del producto base'
                                AFTER `composicion`,
@@ -27,14 +30,16 @@ ALTER TABLE `telas`
                                AFTER `precio`,
   ADD COLUMN `imagen_url`      VARCHAR(500) DEFAULT NULL
                                COMMENT 'Ruta relativa de la imagen del producto'
-                               AFTER `unidad`,
-  ADD CONSTRAINT `fk_tela_subcategoria` FOREIGN KEY (`subcategoria_id`) REFERENCES `categorias` (`id`);
+                               AFTER `unidad`;
 
--- Sub-categorías: parent_id en categorias
+-- Sub-categorías y tipo en categorias
 ALTER TABLE `categorias`
+  ADD COLUMN `tipo`      ENUM('punto','plano') DEFAULT NULL
+                         COMMENT 'Tipo de tejido de esta categoría'
+                         AFTER `empresa_id`,
   ADD COLUMN `parent_id` INT UNSIGNED DEFAULT NULL
                          COMMENT 'Categoría padre para sub-categorías (NULL = categoría raíz)'
-                         AFTER `empresa_id`,
+                         AFTER `tipo`,
   ADD CONSTRAINT `fk_cat_parent` FOREIGN KEY (`parent_id`) REFERENCES `categorias` (`id`);
 
 -- Agregar 'rollo' como unidad válida en variantes

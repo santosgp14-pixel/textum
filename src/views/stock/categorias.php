@@ -30,6 +30,9 @@ foreach ($categorias as $c) {
         <tr>
           <td>
             <span class="font-bold"><?= htmlspecialchars($c['nombre']) ?></span>
+            <?php if (!empty($c['tipo'])): ?>
+              <span class="badge badge-blue" style="margin-left:6px"><?= $c['tipo'] ?></span>
+            <?php endif; ?>
             <span class="text-xs text-muted" style="margin-left:6px">orden <?= (int)$c['orden'] ?></span>
           </td>
           <td>

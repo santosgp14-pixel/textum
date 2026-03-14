@@ -8,7 +8,7 @@ require VIEW_PATH . '/layout/header.php';
   <div class="card-header">
     <div>
       <span class="card-title">Variantes de <?= htmlspecialchars($tela['nombre']) ?></span>
-      <div class="text-sm text-muted mt-1"><?= htmlspecialchars($tela['composicion'] ?? '') ?></div>
+      <div class="text-sm text-muted mt-1"><?= $tela['rinde'] ? 'Rinde: ' . number_format($tela['rinde'], 3, ',', '.') . ' m/kg' : '' ?></div>
     </div>
     <div class="flex gap-2 flex-wrap">
       <a href="index.php?page=variante_nueva&tela_id=<?= $tela['id'] ?>" class="btn btn-primary btn-sm">＋ Nueva variante</a>

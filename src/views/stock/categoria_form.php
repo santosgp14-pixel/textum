@@ -39,6 +39,15 @@ require VIEW_PATH . '/layout/header.php';
       </div>
 
       <div class="form-group">
+        <label class="form-label" for="tipo">Tipo de tejido <span class="text-muted text-xs">(opcional)</span></label>
+        <select id="tipo" name="tipo" class="form-control">
+          <option value="">— Sin especificar —</option>
+          <option value="punto" <?= ($categoria['tipo'] ?? '') === 'punto' ? 'selected' : '' ?>>Punto (jersey, polar, licra…)</option>
+          <option value="plano" <?= ($categoria['tipo'] ?? '') === 'plano' ? 'selected' : '' ?>>Plano (denim, poplin, lino…)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
         <label class="form-label" for="nombre">Nombre *</label>
         <input type="text" id="nombre" name="nombre" class="form-control"
                value="<?= htmlspecialchars($categoria['nombre'] ?? '') ?>"

@@ -3,14 +3,6 @@ $esEdicion   = !empty($tela);
 $pageTitle   = $esEdicion ? 'Editar Producto' : 'Nuevo Producto';
 $currentPage = 'stock';
 
-// Separar categorías raíz de sub-categorías
-$catsRaiz = array_filter($categorias ?? [], fn($c) => empty($c['parent_id']));
-$catsSub  = array_filter($categorias ?? [], fn($c) => !empty($c['parent_id']));
-// Agrupar sub-categorías por parent_id para el select dinámico (pasado como JSON al JS)
-$subcatsPorParent = [];
-foreach ($catsSub as $sc) {
-    $subcatsPorParent[(int)$sc['parent_id']][] = $sc;
-}
 
 require VIEW_PATH . '/layout/header.php';
 ?>
@@ -83,39 +75,19 @@ require VIEW_PATH . '/layout/header.php';
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="form-group">
-          <label class="form-label" for="tipo">Tipo de tejido</label>
-          <select id="tipo" name="tipo" class="form-control">
-            <option value="">— Sin especificar —</option>
-            <option value="punto"  <?= ($tela['tipo'] ?? '') === 'punto'  ? 'selected' : '' ?>>Punto (jersey, polar, licra…)</option>
-            <option value="plano"  <?= ($tela['tipo'] ?? '') === 'plano'  ? 'selected' : '' ?>>Plano (denim, poplin, lino…)</option>
+          <label class="form-label" for="tipo">Categoría *</label>
+          <select id="tipo" name="tipo" class="form-control" required>
+            <option value="">— Seleccionar —</option>
+            <option value="punto" <?= ($tela['tipo'] ?? '') === 'punto' ? 'selected' : '' ?>>Punto</option>
+            <option value="plano" <?= ($tela['tipo'] ?? '') === 'plano' ? 'selected' : '' ?>>Plano</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label" for="categoria_id">Categoría</label>
-          <select id="categoria_id" name="categoria_id" class="form-control">
-            <option value="">— Sin categoría —</option>
-            <?php foreach ($catsRaiz as $cat): ?>
-            <option value="<?= $cat['id'] ?>"
-              <?= ($tela['categoria_id'] ?? 0) == $cat['id'] ? 'selected' : '' ?>>
-              <?= htmlspecialchars($cat['nombre']) ?>
-            </option>
-            <?php endforeach; ?>
-          </select>
+          <label class="form-label" for="subcategoria">Sub-categoría <span class="text-muted text-xs">(opcional)</span></label>
+          <input type="text" id="subcategoria" name="subcategoria" class="form-control"
+                 value="<?= htmlspecialchars($tela['subcategoria'] ?? '') ?>"
+                 placeholder="Ej: Bengalina, Polar, Denim…">
         </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="subcategoria_id">Sub-categoría <span class="text-muted text-xs">(opcional)</span></label>
-        <select id="subcategoria_id" name="subcategoria_id" class="form-control">
-          <option value="">— Sin sub-categoría —</option>
-          <?php foreach ($catsSub as $sc): ?>
-          <option value="<?= $sc['id'] ?>" data-parent="<?= $sc['parent_id'] ?>"
-            <?= ($tela['subcategoria_id'] ?? 0) == $sc['id'] ? 'selected' : '' ?>>
-            <?= htmlspecialchars($sc['nombre']) ?>
-          </option>
-          <?php endforeach; ?>
-        </select>
-        <div class="text-xs text-muted mt-1">Las sub-categorías se filtran según la categoría seleccionada.</div>
       </div>
 
       <!-- ── DATOS DEL PRODUCTO ─────────────────────────── -->
@@ -129,10 +101,31 @@ require VIEW_PATH . '/layout/header.php';
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="composicion">Composición</label>
-        <input type="text" id="composicion" name="composicion" class="form-control"
-               value="<?= htmlspecialchars($tela['composicion'] ?? '') ?>"
-               placeholder="Ej: 65% polyester / 35% algodón">
+        <label class="form-label" for="rinde">Rinde <span class="text-muted text-xs">(metros por kilo)</span></label>
+        <input type="number" id="rinde" name="rinde" class="form-control"
+               value="<?= $tela['rinde'] ?? '' ?>"
+               step="0.001" min="0" placeholder="Ej: 1.250">
+        <div class="text-xs text-muted mt-1">Cuántos metros rinde 1 kilo de tela.</div>
+      </div>
+
+      <!-- ── Calculadora de precio por metro ────────────────── -->
+      <div id="calc-rinde" style="background:var(--gray-50,#f9fafb);border:1px solid var(--gray-200,#e5e7eb);border-radius:8px;padding:14px 16px;margin-bottom:16px">
+        <div class="text-xs font-bold text-muted" style="margin-bottom:10px;letter-spacing:.06em;text-transform:uppercase">Calculadora de precio por metro</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:10px">
+          <div class="form-group" style="margin:0">
+            <label class="form-label" style="font-size:.75rem">Kilos</label>
+            <input type="number" id="calc-kg" class="form-control" step="0.001" min="0" placeholder="2">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label" style="font-size:.75rem">Precio por kilo ($)</label>
+            <input type="number" id="calc-precio-kg" class="form-control" step="0.01" min="0" placeholder="5000">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label" style="font-size:.75rem">Metros que rindió</label>
+            <input type="number" id="calc-metros" class="form-control" step="0.001" min="0" placeholder="2.5">
+          </div>
+        </div>
+        <div id="calc-resultado" style="font-size:.85rem;color:var(--gray-700,#374151);min-height:20px"></div>
       </div>
 
       <div class="form-group">
@@ -264,27 +257,38 @@ require VIEW_PATH . '/layout/header.php';
 
 <script>
 (function () {
-  // ── Sub-categorías dinámicas ──────────────────────────────
-  const subcatsPorParent = <?= json_encode(array_map(fn($g) => array_values($g), $subcatsPorParent), JSON_UNESCAPED_UNICODE) ?>;
-  const catSel    = document.getElementById('categoria_id');
-  const subcatSel = document.getElementById('subcategoria_id');
-  const savedSubcat = <?= (int)($tela['subcategoria_id'] ?? 0) ?>;
+  // ── Calculadora de precio por metro ─────────────────────
+  const calcKg       = document.getElementById('calc-kg');
+  const calcPrecioKg = document.getElementById('calc-precio-kg');
+  const calcMetros   = document.getElementById('calc-metros');
+  const calcResult   = document.getElementById('calc-resultado');
+  const rindeInput   = document.getElementById('rinde');
+  const costoInput   = document.getElementById('costo');
 
-  function refreshSubcats() {
-    const parentId = parseInt(catSel.value) || 0;
-    const subs = subcatsPorParent[parentId] || [];
-    subcatSel.innerHTML = '<option value="">— Sin sub-categoría —</option>';
-    subs.forEach(s => {
-      const opt = document.createElement('option');
-      opt.value = s.id;
-      opt.textContent = s.nombre;
-      if (s.id === savedSubcat) opt.selected = true;
-      subcatSel.appendChild(opt);
-    });
-    subcatSel.closest('.form-group').style.display = subs.length ? '' : 'none';
+  function recalcRinde() {
+    const kg       = parseFloat(calcKg.value)       || 0;
+    const precioKg = parseFloat(calcPrecioKg.value) || 0;
+    const metros   = parseFloat(calcMetros.value)   || 0;
+
+    if (!kg || !precioKg || !metros) { calcResult.textContent = ''; return; }
+
+    // kilos * precio / rinde = precio por metro
+    const precioMetro = (kg * precioKg) / metros;
+    const rindeVal    = metros / kg;   // m/kg para el campo Rinde
+
+    // Pre-llenar campos del formulario
+    rindeInput.value = rindeVal.toFixed(3);
+    costoInput.value = precioKg.toFixed(2);
+
+    const fmt = n => new Intl.NumberFormat('es-AR', { style:'currency', currency:'ARS', minimumFractionDigits:2 }).format(n);
+    calcResult.innerHTML =
+      `<strong>${fmt(kg * precioKg)}</strong> total &nbsp;÷&nbsp; ` +
+      `<strong>${metros.toFixed(3)} m</strong> &nbsp;=&nbsp; ` +
+      `<strong style="color:var(--primary,#2563eb)">${fmt(precioMetro)} / metro</strong>` +
+      `<span class="text-muted" style="margin-left:12px">(rinde ${rindeVal.toFixed(3)} m/kg)</span>`;
   }
-  catSel.addEventListener('change', refreshSubcats);
-  refreshSubcats();
+
+  [calcKg, calcPrecioKg, calcMetros].forEach(el => el.addEventListener('input', recalcRinde));
 
   // ── Preview imagen ────────────────────────────────────────
   const imgInput   = document.getElementById('imagen');

@@ -35,7 +35,7 @@ $catFiltro = (int)($_GET['cat'] ?? 0);
         <tr>
           <th>Producto</th>
           <th>Categoría</th>
-          <th>Composición</th>
+          <th>Categoría</th>
           <th>Colores / variantes</th>
           <th>Acciones</th>
         </tr>
@@ -58,7 +58,14 @@ $catFiltro = (int)($_GET['cat'] ?? 0);
               <span class="text-muted text-sm">—</span>
             <?php endif; ?>
           </td>
-          <td class="text-sm"><?= htmlspecialchars($t['composicion'] ?? '—') ?></td>
+          <td class="text-sm">
+            <?php if (!empty($t['tipo'])): ?>
+              <span class="badge <?= $t['tipo'] === 'punto' ? 'badge-blue' : 'badge-gray' ?>"><?= ucfirst($t['tipo']) ?></span>
+            <?php endif; ?>
+            <?php if (!empty($t['subcategoria'])): ?>
+              <span class="text-xs text-muted" style="display:block;margin-top:2px"><?= htmlspecialchars($t['subcategoria']) ?></span>
+            <?php endif; ?>
+          </td>
           <td>
             <span class="badge badge-blue"><?= (int)$t['variantes_activas'] ?> colores</span>
           </td>
