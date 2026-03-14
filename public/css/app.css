@@ -581,6 +581,40 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* Print */
 @media print {
-  .sidebar, .topbar, .btn, .barcode-zone { display: none !important; }
+  .sidebar, .topbar, .btn, .barcode-zone, .no-print { display: none !important; }
   .page-content { padding: 0; }
+  /* Hide everything except the resumen card */
+  .page-content > *:not(#resumen-card) { display: none !important; }
+  #resumen-card { box-shadow: none !important; border: none !important; }
+  .main-content { margin: 0 !important; }
+}
+
+/* Resumen del pedido */
+.resumen-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 14px;
+  margin-bottom: 4px;
+}
+.resumen-logo {
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--blue-900, #1e3a5f);
+}
+.resumen-logo span { color: var(--blue-500, #3b82f6); }
+.resumen-num {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--gray-800, #1f2937);
+  text-align: right;
+}
+.resumen-fecha {
+  font-size: .8rem;
+  color: var(--gray-500, #6b7280);
+  text-align: right;
 }

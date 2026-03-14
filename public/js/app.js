@@ -184,7 +184,7 @@ if (pedidoForm) {
         <td>
           <div class="font-bold">${item.tela_nombre}</div>
           <div class="text-sm text-muted">${item.descripcion}</div>
-          <div class="text-xs text-muted">${item.codigo_barras}</div>
+          <div class="text-xs text-muted">${formatPesos(item.precio_unit)}&thinsp;/&thinsp;${item.unidad}</div>
         </td>
         <td class="hide-mobile">${item.unidad}</td>
         <td>

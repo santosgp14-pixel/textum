@@ -85,6 +85,7 @@ require VIEW_PATH . '/layout/header.php';
             <td>
               <div class="font-bold"><?= htmlspecialchars($item['tela_nombre']) ?></div>
               <div class="text-sm text-muted"><?= htmlspecialchars($item['descripcion']) ?></div>
+              <div class="text-xs text-muted">$&thinsp;<?= number_format($item['precio_unit'], 2, ',', '.') ?>&thinsp;/&thinsp;<?= $item['unidad'] ?></div>
             </td>
             <td><?= $item['unidad'] ?></td>
             <td><?= number_format($item['cantidad'], 3, ',', '.') ?></td>
@@ -105,9 +106,88 @@ require VIEW_PATH . '/layout/header.php';
     </div>
   </div>
 
-</div>
+  <!-- Resumen para compartir/imprimir -->
+  <div class="card" id="resumen-card">
+    <div class="card-header" style="justify-content:space-between">
+      <span class="card-title">📋 Resumen del pedido</span>
+      <button onclick="window.print()" class="btn btn-sm btn-outline no-print">🖨 Imprimir</button>
+    </div>
+    <div class="card-body" style="padding:20px 24px">
+      <div class="resumen-header">
+        <div class="resumen-logo">Text<span>um</span></div>
+        <div>
+          <div class="resumen-num">Pedido #<?= $pedido['id'] ?></div>
+          <div class="resumen-fecha"><?= date('d/m/Y H:i', strtotime($pedido['created_at'])) ?></div>
+        </div>
+      </div>
 
-<!-- Modal anulación -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin:16px 0">
+        <div>
+          <div class="text-xs text-muted">Cliente</div>
+          <div class="font-bold"><?= htmlspecialchars($pedido['cliente_nombre'] ?? 'Sin asignar') ?></div>
+        </div>
+        <div>
+          <div class="text-xs text-muted">Vendedor</div>
+          <div class="font-bold"><?= htmlspecialchars($pedido['vendedor_nombre']) ?></div>
+        </div>
+        <div>
+          <div class="text-xs text-muted">Estado</div>
+          <div class="font-bold"><?= ucfirst($pedido['estado']) ?></div>
+        </div>
+        <?php if ($pedido['confirmado_at']): ?>
+        <div>
+          <div class="text-xs text-muted">Confirmado</div>
+          <div class="font-bold"><?= date('d/m/Y H:i', strtotime($pedido['confirmado_at'])) ?></div>
+        </div>
+        <?php endif; ?>
+      </div>
+
+      <table style="width:100%;border-collapse:collapse;font-size:.9rem;margin-top:8px">
+        <thead>
+          <tr style="border-bottom:2px solid #e5e7eb">
+            <th style="text-align:left;padding:8px 6px">Artículo</th>
+            <th style="text-align:right;padding:8px 6px">Cant.</th>
+            <th style="text-align:right;padding:8px 6px">Precio unit.</th>
+            <th style="text-align:right;padding:8px 6px">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($items as $item): ?>
+          <tr style="border-bottom:1px solid #f3f4f6">
+            <td style="padding:8px 6px">
+              <div style="font-weight:600"><?= htmlspecialchars($item['tela_nombre']) ?></div>
+              <div style="font-size:.8rem;color:#6b7280"><?= htmlspecialchars($item['descripcion']) ?></div>
+              <div style="font-size:.75rem;color:#9ca3af">$&thinsp;<?= number_format($item['precio_unit'], 2, ',', '.') ?>&thinsp;/&thinsp;<?= $item['unidad'] ?></div>
+            </td>
+            <td style="text-align:right;padding:8px 6px;white-space:nowrap">
+              <?= number_format($item['cantidad'], 3, ',', '.') ?> <?= $item['unidad'] ?>
+            </td>
+            <td style="text-align:right;padding:8px 6px;white-space:nowrap">
+              $&thinsp;<?= number_format($item['precio_unit'], 2, ',', '.') ?>
+            </td>
+            <td style="text-align:right;padding:8px 6px;font-weight:700;white-space:nowrap">
+              $&thinsp;<?= number_format($item['subtotal'], 2, ',', '.') ?>
+            </td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+        <tfoot>
+          <tr style="border-top:2px solid #e5e7eb;background:#f9fafb">
+            <td colspan="3" style="text-align:right;padding:12px 6px;font-weight:700">TOTAL</td>
+            <td style="text-align:right;padding:12px 6px;font-weight:800;font-size:1.1rem">
+              $&thinsp;<?= number_format($pedido['total'], 2, ',', '.') ?>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div style="margin-top:20px;font-size:.78rem;color:#9ca3af;text-align:center">
+        Textum &mdash; <?= htmlspecialchars(Auth::empresaNombre()) ?>
+      </div>
+    </div>
+  </div>
+
+</div>
 <?php if ($pedido['estado'] === 'confirmado' && Auth::isAdmin()): ?>
 <div class="modal" id="modal-anular">
   <div class="modal-backdrop"></div>
