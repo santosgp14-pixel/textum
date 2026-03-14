@@ -1,6 +1,6 @@
 -- ============================================================
 -- TEXTUM - Migración v1.4
--- Agrega: rinde/barcode/precio/unidad/imagen en telas
+    -- Agrega: rinde/barcode/precio/unidad/imagen en telas
 --         sub-categorías de texto + tipo/parent_id en categorias
 --         unidad 'rollo' en variantes
 --         costo por rollo (barcode ya estaba en v1.3)
