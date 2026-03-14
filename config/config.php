@@ -43,9 +43,10 @@ define('SESSION_LIFETIME', 28800); // 8 horas
 define('BCRYPT_COST', 10);
 
 // ── Rutas internas ─────────────────────────────────────────────
-define('ROOT_PATH',  dirname(__DIR__));
-define('SRC_PATH',   ROOT_PATH . '/src');
-define('VIEW_PATH',  SRC_PATH  . '/views');
+define('ROOT_PATH',   dirname(__DIR__));
+define('SRC_PATH',    ROOT_PATH . '/src');
+define('VIEW_PATH',   SRC_PATH  . '/views');
+define('PUBLIC_PATH', ROOT_PATH . '/public');
 
 // ── Zona horaria ───────────────────────────────────────────────
 date_default_timezone_set(getenv('TZ') ?: 'America/Argentina/Buenos_Aires');

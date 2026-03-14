@@ -46,21 +46,35 @@ class StockController {
 
     public function nuevaTela(): void {
         Auth::require();
-        $tela       = null;
-        $categorias = $this->getCategorias(Auth::empresaId());
+        $tela               = null;
+        $variantesExistentes = [];
+        $categorias         = $this->getCategorias(Auth::empresaId());
         require VIEW_PATH . '/stock/tela_form.php';
     }
 
     public function guardarTela(): void {
         Auth::require();
         $eid  = Auth::empresaId();
+        $uid  = Auth::userId();
         $id   = (int)($_POST['id'] ?? 0);
-        $catId = (int)($_POST['categoria_id'] ?? 0) ?: null;
+
+        $catId    = (int)($_POST['categoria_id']    ?? 0) ?: null;
+        $subcatId = (int)($_POST['subcategoria_id'] ?? 0) ?: null;
+
+        $unidad = in_array($_POST['unidad'] ?? '', ['metro','kilo','rollo'])
+                  ? $_POST['unidad'] : 'metro';
+
         $data = [
-            'nombre'       => trim($_POST['nombre']       ?? ''),
-            'descripcion'  => trim($_POST['descripcion']  ?? ''),
-            'composicion'  => trim($_POST['composicion']  ?? ''),
-            'categoria_id' => $catId,
+            'nombre'         => trim($_POST['nombre']         ?? ''),
+            'descripcion'    => trim($_POST['descripcion']    ?? ''),
+            'composicion'    => trim($_POST['composicion']    ?? ''),
+            'categoria_id'   => $catId,
+            'subcategoria_id'=> $subcatId,
+            'tipo'           => in_array($_POST['tipo'] ?? '', ['punto','plano']) ? $_POST['tipo'] : null,
+            'codigo_barras'  => trim($_POST['codigo_barras']  ?? '') ?: null,
+            'costo'          => (float)($_POST['costo']       ?? 0),
+            'precio'         => (float)($_POST['precio']      ?? 0),
+            'unidad'         => $unidad,
         ];
 
         if (empty($data['nombre'])) {
@@ -69,20 +83,125 @@ class StockController {
             exit;
         }
 
-        if ($id > 0) {
-            $stmt = $this->db->prepare(
-                "UPDATE telas SET nombre=?, descripcion=?, composicion=?, categoria_id=?
-                 WHERE id=? AND empresa_id=?"
-            );
-            $stmt->execute([$data['nombre'], $data['descripcion'], $data['composicion'],
-                            $data['categoria_id'], $id, $eid]);
-        } else {
-            $stmt = $this->db->prepare(
-                "INSERT INTO telas (empresa_id, nombre, descripcion, composicion, categoria_id)
-                 VALUES (?,?,?,?,?)"
-            );
-            $stmt->execute([$eid, $data['nombre'], $data['descripcion'],
-                            $data['composicion'], $data['categoria_id']]);
+        // ── Imagen ───────────────────────────────────────────
+        $imagenUrl = null;
+        if (!empty($_FILES['imagen']['tmp_name'])) {
+            $imagenUrl = $this->subirImagen($_FILES['imagen']);
+            if ($imagenUrl === false) {
+                $this->flashError('Error al guardar la imagen. Verifique formato y tamaño (máx 2 MB).');
+                $redirect = $id > 0 ? "index.php?page=tela_editar&id=$id" : 'index.php?page=tela_nueva';
+                header('Location: ' . BASE_URL . '/' . $redirect);
+                exit;
+            }
+        }
+
+        $this->db->beginTransaction();
+        try {
+            if ($id > 0) {
+                $sql = "UPDATE telas
+                        SET nombre=?, descripcion=?, composicion=?,
+                            categoria_id=?, subcategoria_id=?, tipo=?,
+                            codigo_barras=?, costo=?, precio=?, unidad=?"
+                      . ($imagenUrl !== null ? ', imagen_url=?' : '')
+                      . " WHERE id=? AND empresa_id=?";
+                $params = [
+                    $data['nombre'], $data['descripcion'], $data['composicion'],
+                    $data['categoria_id'], $data['subcategoria_id'], $data['tipo'],
+                    $data['codigo_barras'], $data['costo'], $data['precio'], $data['unidad'],
+                ];
+                if ($imagenUrl !== null) $params[] = $imagenUrl;
+                $params[] = $id;
+                $params[] = $eid;
+                $this->db->prepare($sql)->execute($params);
+            } else {
+                $stmt = $this->db->prepare(
+                    "INSERT INTO telas
+                     (empresa_id, nombre, descripcion, composicion,
+                      categoria_id, subcategoria_id, tipo,
+                      codigo_barras, costo, precio, unidad, imagen_url)
+                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
+                );
+                $stmt->execute([
+                    $eid,
+                    $data['nombre'], $data['descripcion'], $data['composicion'],
+                    $data['categoria_id'], $data['subcategoria_id'], $data['tipo'],
+                    $data['codigo_barras'], $data['costo'], $data['precio'],
+                    $data['unidad'], $imagenUrl,
+                ]);
+                $id = (int)$this->db->lastInsertId();
+
+                // ── Variantes inline ──────────────────────────
+                $stockInicial = (float)($_POST['stock_inicial'] ?? 0);
+                $variantes    = $_POST['variantes'] ?? [];
+
+                if (!empty($variantes) && is_array($variantes)) {
+                    foreach ($variantes as $v) {
+                        $vDesc   = trim($v['descripcion']   ?? '');
+                        $vBarcode= trim($v['codigo_barras'] ?? '');
+                        $vUnidad = in_array($v['unidad'] ?? '', ['metro','kilo','rollo'])
+                                   ? $v['unidad'] : $data['unidad'];
+                        $vCosto  = (float)($v['costo']  ?? $data['costo']);
+                        $vPrecio = (float)($v['precio'] ?? $data['precio']);
+
+                        if (empty($vDesc) || empty($vBarcode)) continue;
+
+                        $this->db->prepare(
+                            "INSERT INTO variantes
+                             (tela_id, empresa_id, descripcion, codigo_barras,
+                              unidad, costo, precio, precio_rollo, minimo_venta, stock)
+                             VALUES (?,?,?,?,?,?,?,0,0.100,0)"
+                        )->execute([$id, $eid, $vDesc, $vBarcode, $vUnidad, $vCosto, $vPrecio]);
+                        $varId = (int)$this->db->lastInsertId();
+
+                        // Rollos de esta variante
+                        $rollos = $v['rollos'] ?? [];
+                        if (is_array($rollos)) {
+                            $stockTotal = 0.0;
+                            foreach ($rollos as $r) {
+                                $metros    = (float)($r['metros']    ?? 0);
+                                $nroRollo  = trim($r['nro_rollo'] ?? '');
+                                if ($metros <= 0) continue;
+                                $this->db->prepare(
+                                    "INSERT INTO rollos (variante_id, empresa_id, nro_rollo, metros)
+                                     VALUES (?,?,?,?)"
+                                )->execute([$varId, $eid, $nroRollo, $metros]);
+                                $stockTotal += $metros;
+                            }
+                            if ($stockTotal > 0) {
+                                $this->db->prepare(
+                                    "UPDATE variantes SET stock=? WHERE id=?"
+                                )->execute([$stockTotal, $varId]);
+                                $this->db->prepare(
+                                    "INSERT INTO movimientos_stock
+                                     (empresa_id, variante_id, usuario_id, tipo,
+                                      cantidad, stock_antes, stock_despues)
+                                     VALUES (?,?,?,'ajuste_entrada',?,0,?)"
+                                )->execute([$eid, $varId, $uid, $stockTotal, $stockTotal]);
+                            }
+                        }
+                    }
+                } elseif ($stockInicial > 0) {
+                    // Sin variantes: insertar variante genérica con stock inicial
+                    $this->db->prepare(
+                        "INSERT INTO variantes
+                         (tela_id, empresa_id, descripcion, codigo_barras,
+                          unidad, costo, precio, precio_rollo, minimo_venta, stock)
+                         VALUES (?,?,?,?,?,?,?,0,0.100,?)"
+                    )->execute([
+                        $id, $eid, 'General',
+                        $data['codigo_barras'] ?? 'GEN-' . $id,
+                        $data['unidad'], $data['costo'], $data['precio'],
+                        $stockInicial,
+                    ]);
+                }
+            }
+
+            $this->db->commit();
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            $this->flashError('Error al guardar: ' . $e->getMessage());
+            header('Location: ' . BASE_URL . '/index.php?page=stock');
+            exit;
         }
 
         $this->flashOk('Producto guardado correctamente.');
@@ -96,6 +215,15 @@ class StockController {
         $eid        = Auth::empresaId();
         $tela       = $this->findTela($id, $eid);
         $categorias = $this->getCategorias($eid);
+
+        $stmt = $this->db->prepare(
+            "SELECT id, descripcion, codigo_barras, unidad, stock
+             FROM variantes WHERE tela_id=? AND empresa_id=? AND activa=1
+             ORDER BY descripcion"
+        );
+        $stmt->execute([$id, $eid]);
+        $variantesExistentes = $stmt->fetchAll();
+
         require VIEW_PATH . '/stock/tela_form.php';
     }
 
@@ -457,10 +585,10 @@ class StockController {
         $stmt = $this->db->prepare(
             "SELECT c.*, COUNT(t.id) AS total_productos
              FROM categorias c
-             LEFT JOIN telas t ON t.categoria_id = c.id AND t.activa = 1
+             LEFT JOIN telas t ON (t.categoria_id = c.id OR t.subcategoria_id = c.id) AND t.activa = 1
              WHERE c.empresa_id = ? AND c.activa = 1
              GROUP BY c.id
-             ORDER BY c.orden, c.nombre"
+             ORDER BY ISNULL(c.parent_id), c.parent_id, c.orden, c.nombre"
         );
         $stmt->execute([$eid]);
         $categorias = $stmt->fetchAll();
@@ -469,7 +597,8 @@ class StockController {
 
     public function nuevaCategoria(): void {
         Auth::require();
-        $categoria = null;
+        $categoria       = null;
+        $todasCategorias = $this->getCategorias(Auth::empresaId());
         require VIEW_PATH . '/stock/categoria_form.php';
     }
 
@@ -481,6 +610,7 @@ class StockController {
         $stmt->execute([$id, $eid]);
         $categoria = $stmt->fetch();
         if (!$categoria) { $this->notFound(); return; }
+        $todasCategorias = $this->getCategorias($eid);
         require VIEW_PATH . '/stock/categoria_form.php';
     }
 
@@ -497,14 +627,16 @@ class StockController {
             exit;
         }
 
+        $parentId = (int)($_POST['parent_id'] ?? 0) ?: null;
+
         if ($id > 0) {
             $this->db->prepare(
-                "UPDATE categorias SET nombre=?, orden=? WHERE id=? AND empresa_id=?"
-            )->execute([$nombre, $orden, $id, $eid]);
+                "UPDATE categorias SET nombre=?, orden=?, parent_id=? WHERE id=? AND empresa_id=?"
+            )->execute([$nombre, $orden, $parentId, $id, $eid]);
         } else {
             $this->db->prepare(
-                "INSERT INTO categorias (empresa_id, nombre, orden) VALUES (?,?,?)"
-            )->execute([$eid, $nombre, $orden]);
+                "INSERT INTO categorias (empresa_id, nombre, orden, parent_id) VALUES (?,?,?,?)"
+            )->execute([$eid, $nombre, $orden, $parentId]);
         }
 
         $this->flashOk('Categoría guardada.');
@@ -518,10 +650,34 @@ class StockController {
 
     private function getCategorias(int $eid): array {
         $stmt = $this->db->prepare(
-            "SELECT * FROM categorias WHERE empresa_id=? AND activa=1 ORDER BY orden, nombre"
+            "SELECT * FROM categorias WHERE empresa_id=? AND activa=1 ORDER BY ISNULL(parent_id), parent_id, orden, nombre"
         );
         $stmt->execute([$eid]);
         return $stmt->fetchAll();
+    }
+
+    /** Guarda imagen subida y devuelve la ruta relativa, o false si hay error */
+    private function subirImagen(array $file): string|false {
+        $maxBytes  = 2 * 1024 * 1024;
+        $allowed   = ['image/jpeg','image/png','image/webp','image/gif'];
+        $ext       = ['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','image/gif'=>'gif'];
+
+        if ($file['error'] !== UPLOAD_ERR_OK)    return false;
+        if ($file['size'] > $maxBytes)           return false;
+
+        // Validate MIME via finfo (don't trust $_FILES['type'])
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mime  = $finfo->file($file['tmp_name']);
+        if (!in_array($mime, $allowed, true))    return false;
+
+        $dir = PUBLIC_PATH . '/assets/uploads/productos';
+        if (!is_dir($dir)) mkdir($dir, 0755, true);
+
+        $filename = bin2hex(random_bytes(12)) . '.' . $ext[$mime];
+        $dest     = $dir . '/' . $filename;
+        if (!move_uploaded_file($file['tmp_name'], $dest)) return false;
+
+        return 'assets/uploads/productos/' . $filename;
     }
 
     private function findVariante(int $id, int $eid): array {
