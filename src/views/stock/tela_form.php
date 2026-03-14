@@ -40,7 +40,7 @@ require VIEW_PATH . '/layout/header.php';
 }
 .rollo-row {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr 1fr 1fr auto;
   gap: 10px;
   align-items: end;
   margin-bottom: 8px;
@@ -57,6 +57,14 @@ require VIEW_PATH . '/layout/header.php';
 }
 .btn-icon:hover { background: var(--gray-100); color: var(--danger, #ef4444); }
 .img-preview { max-width: 120px; max-height: 120px; border-radius: 6px; object-fit: cover; border: 1px solid var(--gray-200); }
+/* ── Calculadoras de precio ────────────────────────── */
+.calc-box { background:var(--gray-50,#f9fafb); border:1px solid var(--gray-200,#e5e7eb); border-radius:8px; margin-bottom:16px; overflow:hidden; }
+.calc-tabs { display:flex; border-bottom:1px solid var(--gray-200,#e5e7eb); background:#fff; }
+.calc-tab { flex:1; padding:8px 10px; font-size:.78rem; font-weight:600; background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; color:var(--gray-500,#6b7280); transition:color .15s,border-color .15s; }
+.calc-tab.active { color:var(--primary,#2563eb); border-bottom-color:var(--primary,#2563eb); }
+.calc-panel { padding:14px 16px; }
+.calc-formula { font-size:.72rem; color:var(--gray-400); font-style:italic; margin:0 0 10px; }
+.calc-resultado { font-size:.85rem; color:var(--gray-700,#374151); min-height:20px; margin-bottom:0; }
 </style>
 
 <div class="card" style="max-width:680px">
@@ -83,13 +91,29 @@ require VIEW_PATH . '/layout/header.php';
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label" for="subcategoria">Sub-categoría <span class="text-muted text-xs">(opcional)</span></label>
-          <input type="text" id="subcategoria" name="subcategoria" class="form-control"
-                 value="<?= htmlspecialchars($tela['subcategoria'] ?? '') ?>"
-                 placeholder="Ej: Bengalina, Polar, Denim…">
+          <label class="form-label" for="subcategoria">Estación <span class="text-muted text-xs">(opcional)</span></label>
+          <select id="subcategoria" name="subcategoria" class="form-control">
+            <option value="">— Sin especificar —</option>
+            <option value="atemporal"   <?= ($tela['subcategoria'] ?? '') === 'atemporal'   ? 'selected' : '' ?>>Atemporal</option>
+            <option value="invierno"    <?= ($tela['subcategoria'] ?? '') === 'invierno'    ? 'selected' : '' ?>>Invierno</option>
+            <option value="verano"      <?= ($tela['subcategoria'] ?? '') === 'verano'      ? 'selected' : '' ?>>Verano</option>
+          </select>
         </div>
       </div>
-
+      <div class="form-group">
+        <label class="form-label" for="categoria_id">Tipo de tela <span class="text-muted text-xs">(opcional)</span></label>
+        <select id="categoria_id" name="categoria_id" class="form-control">
+          <option value="">— Sin categoría —</option>
+          <?php foreach ($categorias as $cat): ?>
+          <option value="<?= $cat['id'] ?>"
+                  data-tipo="<?= htmlspecialchars($cat['tipo'] ?? '') ?>"
+                  <?= ($tela['categoria_id'] ?? null) == $cat['id'] ? 'selected' : '' ?>>
+            <?= htmlspecialchars($cat['nombre']) ?>
+          </option>
+          <?php endforeach; ?>
+        </select>
+        <div class="text-xs text-muted mt-1">Ej: Frisa, Tricot, Denim, Poplin…</div>
+      </div>
       <!-- ── DATOS DEL PRODUCTO ─────────────────────────── -->
       <div class="section-title">Datos del producto</div>
 
@@ -108,26 +132,6 @@ require VIEW_PATH . '/layout/header.php';
         <div class="text-xs text-muted mt-1">Cuántos metros rinde 1 kilo de tela.</div>
       </div>
 
-      <!-- ── Calculadora de precio por metro ────────────────── -->
-      <div id="calc-rinde" style="background:var(--gray-50,#f9fafb);border:1px solid var(--gray-200,#e5e7eb);border-radius:8px;padding:14px 16px;margin-bottom:16px">
-        <div class="text-xs font-bold text-muted" style="margin-bottom:10px;letter-spacing:.06em;text-transform:uppercase">Calculadora de precio por metro</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:10px">
-          <div class="form-group" style="margin:0">
-            <label class="form-label" style="font-size:.75rem">Kilos</label>
-            <input type="number" id="calc-kg" class="form-control" step="0.001" min="0" placeholder="2">
-          </div>
-          <div class="form-group" style="margin:0">
-            <label class="form-label" style="font-size:.75rem">Precio por kilo ($)</label>
-            <input type="number" id="calc-precio-kg" class="form-control" step="0.01" min="0" placeholder="5000">
-          </div>
-          <div class="form-group" style="margin:0">
-            <label class="form-label" style="font-size:.75rem">Metros que rindió</label>
-            <input type="number" id="calc-metros" class="form-control" step="0.001" min="0" placeholder="2.5">
-          </div>
-        </div>
-        <div id="calc-resultado" style="font-size:.85rem;color:var(--gray-700,#374151);min-height:20px"></div>
-      </div>
-
       <div class="form-group">
         <label class="form-label" for="descripcion">Descripción</label>
         <textarea id="descripcion" name="descripcion" class="form-control" rows="2"
@@ -138,13 +142,6 @@ require VIEW_PATH . '/layout/header.php';
       <div class="section-title">Precio y venta</div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
-        <div class="form-group">
-          <label class="form-label" for="costo">Costo ($)</label>
-          <input type="number" id="costo" name="costo" class="form-control"
-                 value="<?= number_format((float)($tela['costo'] ?? 0), 2, '.', '') ?>"
-                 step="0.01" min="0" placeholder="0.00">
-          <div class="text-xs text-muted mt-1">Precio de compra</div>
-        </div>
         <div class="form-group">
           <label class="form-label" for="precio">Precio ($) *</label>
           <input type="number" id="precio" name="precio" class="form-control"
@@ -160,25 +157,82 @@ require VIEW_PATH . '/layout/header.php';
             <option value="rollo" <?= ($tela['unidad'] ?? '') === 'rollo' ? 'selected' : '' ?>>Rollo completo</option>
           </select>
         </div>
+        <div class="form-group">
+          <label class="form-label" for="minimo_venta">Mínimo fraccionado</label>
+          <input type="number" id="minimo_venta" name="minimo_venta" class="form-control"
+                 value="<?= number_format((float)($tela['minimo_venta'] ?? 1), 3, '.', '') ?>"
+                 step="0.001" min="0.001" placeholder="1.000">
+          <div class="text-xs text-muted mt-1" id="minimo-hint">Ej: 2 kg ó 5 metros</div>
+        </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <div class="form-group">
-          <label class="form-label" for="codigo_barras">Código de barras</label>
-          <input type="text" id="codigo_barras" name="codigo_barras" class="form-control barcode-input"
-                 value="<?= htmlspecialchars($tela['codigo_barras'] ?? '') ?>"
-                 placeholder="Escanear o escribir código">
-          <div class="text-xs text-muted mt-1">Código del producto base (opcional).</div>
+      <!-- ── CALCULADORAS DE PRECIO ───────────────────── -->
+      <div class="section-title">Calculadoras de precio</div>
+
+      <div class="calc-box">
+        <nav class="calc-tabs">
+          <button type="button" class="calc-tab active" data-tab="metro">Por metro</button>
+          <button type="button" class="calc-tab" data-tab="rollo">Por rollo</button>
+          <button type="button" class="calc-tab" data-tab="fraccionado">Fraccionado</button>
+        </nav>
+
+        <!-- Tab 1: precio por metro — kilos = 1 —————————————— -->
+        <div class="calc-panel" id="calc-panel-metro">
+          <p class="calc-formula">1 kg × Precio/kg ÷ Rinde&nbsp;=&nbsp;precio / metro</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+            <div class="form-group" style="margin:0">
+              <label class="form-label" style="font-size:.75rem">Precio por kilo ($)</label>
+              <input type="number" id="c1-precio-kg" class="form-control" step="0.01" min="0" placeholder="5000">
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="form-label" style="font-size:.75rem">Rinde (m / kg)</label>
+              <input type="number" id="c1-rinde" class="form-control" step="0.001" min="0" placeholder="1.250">
+            </div>
+          </div>
+          <div id="c1-resultado" class="calc-resultado"></div>
         </div>
-        <?php if (!$esEdicion): ?>
-        <div class="form-group">
-          <label class="form-label" for="stock_inicial">Stock inicial</label>
-          <input type="number" id="stock_inicial" name="stock_inicial" class="form-control"
-                 value="0" step="0.001" min="0" placeholder="0.000">
-          <div class="text-xs text-muted mt-1">Solo si no usás variantes/rollos.</div>
+
+        <!-- Tab 2: precio por rollo ———————————————————— -->
+        <div class="calc-panel" id="calc-panel-rollo" style="display:none">
+          <p class="calc-formula">Metros del rollo × Precio/metro = precio del rollo</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+            <div class="form-group" style="margin:0">
+              <label class="form-label" style="font-size:.75rem">Metros del rollo</label>
+              <input type="number" id="c2-metros" class="form-control" step="0.001" min="0" placeholder="25.000">
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="form-label" style="font-size:.75rem">Precio por metro ($)</label>
+              <input type="number" id="c2-precio-metro" class="form-control" step="0.01" min="0" placeholder="3000">
+            </div>
+          </div>
+          <div id="c2-resultado" class="calc-resultado"></div>
         </div>
-        <?php endif; ?>
+
+        <!-- Tab 3: precio fraccionado ————————————————— -->
+        <div class="calc-panel" id="calc-panel-fraccionado" style="display:none">
+          <p class="calc-formula">Precio del rollo ÷ Metros = precio / metro fraccionado</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+            <div class="form-group" style="margin:0">
+              <label class="form-label" style="font-size:.75rem">Precio del rollo ($)</label>
+              <input type="number" id="c3-precio-rollo" class="form-control" step="0.01" min="0" placeholder="75000">
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="form-label" style="font-size:.75rem">Metros del rollo</label>
+              <input type="number" id="c3-metros" class="form-control" step="0.001" min="0" placeholder="25.000">
+            </div>
+          </div>
+          <div id="c3-resultado" class="calc-resultado"></div>
+        </div>
       </div>
+
+      <?php if (!$esEdicion): ?>
+      <div class="form-group">
+        <label class="form-label" for="stock_inicial">Stock inicial</label>
+        <input type="number" id="stock_inicial" name="stock_inicial" class="form-control"
+               value="0" step="0.001" min="0" placeholder="0.000" readonly>
+        <div class="text-xs text-muted mt-1">Calculado automáticamente de los rollos ingresados.</div>
+      </div>
+      <?php endif; ?>
 
       <!-- ── IMAGEN ─────────────────────────────────────── -->
       <div class="section-title">Imagen del producto</div>
@@ -255,41 +309,121 @@ require VIEW_PATH . '/layout/header.php';
   </div>
 </div>
 
+<!-- ── Modal: escáner de código de barras ────────────── -->
+<div id="scanner-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:20px;width:min(340px,92vw)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <strong style="font-size:.95rem">Escanear código</strong>
+      <button type="button" id="btn-close-scanner" class="btn-icon" style="font-size:1.3rem">✕</button>
+    </div>
+    <div id="scanner-preview" style="width:100%;border-radius:8px;overflow:hidden;min-height:180px"></div>
+    <p id="scanner-status" class="text-xs text-muted text-center" style="margin:8px 0 0">
+      Apuntá la cámara al código de barras
+    </p>
+  </div>
+</div>
+
+<script>const categoriasData = <?= json_encode(array_values(array_map(fn($c) => ['id'=>(int)$c['id'],'nombre'=>$c['nombre'],'tipo'=>$c['tipo']??''], $categorias)), JSON_HEX_TAG|JSON_HEX_AMP) ?>;</script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 (function () {
-  // ── Calculadora de precio por metro ─────────────────────
-  const calcKg       = document.getElementById('calc-kg');
-  const calcPrecioKg = document.getElementById('calc-precio-kg');
-  const calcMetros   = document.getElementById('calc-metros');
-  const calcResult   = document.getElementById('calc-resultado');
-  const rindeInput   = document.getElementById('rinde');
-  const costoInput   = document.getElementById('costo');
+  const tipoSel   = document.getElementById('tipo');
+  const unidadSel = document.getElementById('unidad');
+  const catSel    = document.getElementById('categoria_id');
+  const fmt = n => new Intl.NumberFormat('es-AR', { style:'currency', currency:'ARS', minimumFractionDigits:2 }).format(n);
+  const precioInput = document.getElementById('precio');
+  const rindeInput  = document.getElementById('rinde');
 
-  function recalcRinde() {
-    const kg       = parseFloat(calcKg.value)       || 0;
-    const precioKg = parseFloat(calcPrecioKg.value) || 0;
-    const metros   = parseFloat(calcMetros.value)   || 0;
+  // ── Tabs de calculadoras ──────────────────────────────────
+  document.querySelectorAll('.calc-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.calc-tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.calc-panel').forEach(p => p.style.display = 'none');
+      btn.classList.add('active');
+      document.getElementById('calc-panel-' + btn.dataset.tab).style.display = '';
+    });
+  });
 
-    if (!kg || !precioKg || !metros) { calcResult.textContent = ''; return; }
+  // ── Calc 1: precio por metro (1 kg) ──────────────────────
+  const c1PrecioKg = document.getElementById('c1-precio-kg');
+  const c1Rinde    = document.getElementById('c1-rinde');
+  const c1Res      = document.getElementById('c1-resultado');
 
-    // kilos * precio / rinde = precio por metro
-    const precioMetro = (kg * precioKg) / metros;
-    const rindeVal    = metros / kg;   // m/kg para el campo Rinde
+  // Sincronizar c1-rinde ↔ campo rinde del formulario
+  rindeInput?.addEventListener('input', () => { c1Rinde.value = rindeInput.value; calc1(); });
+  c1Rinde.addEventListener('input', () => { if (rindeInput) rindeInput.value = c1Rinde.value; calc1(); });
+  c1PrecioKg.addEventListener('input', calc1);
 
-    // Pre-llenar campos del formulario
-    rindeInput.value = rindeVal.toFixed(3);
-    costoInput.value = precioKg.toFixed(2);
-
-    const fmt = n => new Intl.NumberFormat('es-AR', { style:'currency', currency:'ARS', minimumFractionDigits:2 }).format(n);
-    calcResult.innerHTML =
-      `<strong>${fmt(kg * precioKg)}</strong> total &nbsp;÷&nbsp; ` +
-      `<strong>${metros.toFixed(3)} m</strong> &nbsp;=&nbsp; ` +
-      `<strong style="color:var(--primary,#2563eb)">${fmt(precioMetro)} / metro</strong>` +
-      `<span class="text-muted" style="margin-left:12px">(rinde ${rindeVal.toFixed(3)} m/kg)</span>`;
+  function calc1() {
+    const precioKg = parseFloat(c1PrecioKg.value) || 0;
+    const rinde    = parseFloat(c1Rinde.value)    || 0;
+    if (!precioKg || !rinde) { c1Res.textContent = ''; return; }
+    const precioMetro = precioKg / rinde; // 1 kg * precio / rinde
+    if (rindeInput) rindeInput.value = rinde.toFixed(3);
+    if (precioInput) precioInput.value = precioMetro.toFixed(2);
+    c1Res.innerHTML =
+      `${fmt(precioKg)} / kg ÷ <strong>${rinde.toFixed(3)} m/kg</strong> = ` +
+      `<strong style="color:var(--primary,#2563eb)">${fmt(precioMetro)} / metro</strong>`;
   }
 
-  [calcKg, calcPrecioKg, calcMetros].forEach(el => el.addEventListener('input', recalcRinde));
+  // ── Calc 2: precio por rollo ───────────────────────────
+  const c2Metros    = document.getElementById('c2-metros');
+  const c2PrecioMtr = document.getElementById('c2-precio-metro');
+  const c2Res       = document.getElementById('c2-resultado');
+  [c2Metros, c2PrecioMtr].forEach(el => el.addEventListener('input', calc2));
 
+  function calc2() {
+    const metros     = parseFloat(c2Metros.value)    || 0;
+    const precioMtro = parseFloat(c2PrecioMtr.value) || 0;
+    if (!metros || !precioMtro) { c2Res.textContent = ''; return; }
+    const precioRollo = metros * precioMtro;
+    if (precioInput) precioInput.value = precioRollo.toFixed(2);
+    c2Res.innerHTML =
+      `<strong>${metros.toFixed(3)} m</strong> × ${fmt(precioMtro)}/m = ` +
+      `<strong style="color:var(--primary,#2563eb)">${fmt(precioRollo)} / rollo</strong>`;
+  }
+
+  // ── Calc 3: precio fraccionado ────────────────────────
+  const c3PrecioRollo = document.getElementById('c3-precio-rollo');
+  const c3Metros      = document.getElementById('c3-metros');
+  const c3Res         = document.getElementById('c3-resultado');
+  [c3PrecioRollo, c3Metros].forEach(el => el.addEventListener('input', calc3));
+
+  function calc3() {
+    const precioRollo = parseFloat(c3PrecioRollo.value) || 0;
+    const metros      = parseFloat(c3Metros.value)      || 0;
+    if (!precioRollo || !metros) { c3Res.textContent = ''; return; }
+    const precioMetro = precioRollo / metros;
+    if (precioInput) precioInput.value = precioMetro.toFixed(2);
+    c3Res.innerHTML =
+      `${fmt(precioRollo)} ÷ <strong>${metros.toFixed(3)} m</strong> = ` +
+      `<strong style="color:var(--primary,#2563eb)">${fmt(precioMetro)} / metro</strong>`;
+  }
+  // ── Tipo → unidad auto + filtro categorías + labels ─────────
+  function updateRolloLabels() {
+    const lbl = tipoSel?.value === 'punto' ? 'Kilos *' : 'Metros *';
+    document.querySelectorAll('.rollo-cantidad-label').forEach(el => el.textContent = lbl);
+  }
+  function onTipoChange() {
+    const t = tipoSel?.value;
+    if (unidadSel) {
+      if (t === 'punto') unidadSel.value = 'kilo';
+      if (t === 'plano') unidadSel.value = 'metro';
+    }
+    if (catSel && typeof categoriasData !== 'undefined') {
+      Array.from(catSel.options).forEach(opt => {
+        if (!opt.value) return;
+        const tipoCat = opt.dataset.tipo || '';
+        opt.hidden = tipoCat !== '' && tipoCat !== t;
+      });
+      if (catSel.selectedOptions[0]?.hidden) catSel.value = '';
+    }
+    const hint = document.getElementById('minimo-hint');
+    if (hint) hint.textContent = t === 'punto' ? 'Ej: 2 kg mínimo' : t === 'plano' ? 'Ej: 5 metros mínimo' : 'Ej: 1.000';
+    updateRolloLabels();
+  }
+  tipoSel?.addEventListener('change', onTipoChange);
+  onTipoChange(); // aplicar al cargar en modo edición
   // ── Preview imagen ────────────────────────────────────────
   const imgInput   = document.getElementById('imagen');
   const imgPreview = document.getElementById('img-preview');
@@ -323,23 +457,11 @@ require VIEW_PATH . '/layout/header.php';
         <span class="v-title">Color / variante #${idx + 1}</span>
         <button type="button" class="btn-icon btn-remove-variante" title="Quitar variante">✕</button>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:12px">
         <div class="form-group" style="margin:0">
           <label class="form-label">Descripción / color *</label>
           <input type="text" name="variantes[${idx}][descripcion]" class="form-control"
                  placeholder="Ej: Azul marino" required>
-        </div>
-        <div class="form-group" style="margin:0">
-          <label class="form-label">Código de barras *</label>
-          <input type="text" name="variantes[${idx}][codigo_barras]" class="form-control barcode-input"
-                 placeholder="Escanear o escribir" required>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
-        <div class="form-group" style="margin:0">
-          <label class="form-label">Costo ($)</label>
-          <input type="number" name="variantes[${idx}][costo]" class="form-control"
-                 value="0" step="0.01" min="0">
         </div>
         <div class="form-group" style="margin:0">
           <label class="form-label">Precio ($)</label>
@@ -373,7 +495,21 @@ require VIEW_PATH . '/layout/header.php';
                class="form-control" placeholder="Ej: R001">
       </div>
       <div class="form-group" style="margin:0">
-        <label class="form-label">Metros / kilos *</label>
+        <label class="form-label">Código de barras</label>
+        <div style="display:flex;gap:6px;align-items:stretch">
+          <input type="text" name="variantes[${varIdx}][rollos][${rolloIdx}][codigo_barras]"
+                 class="form-control barcode-input" placeholder="Escanear o escribir" style="flex:1">
+          <button type="button" class="btn btn-outline btn-sm btn-scan-barcode"
+                  title="Escanear con cámara" style="padding:0 10px;font-size:1.1rem">&#x1F4F7;</button>
+        </div>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Costo ($)</label>
+        <input type="number" name="variantes[${varIdx}][rollos][${rolloIdx}][costo]"
+               class="form-control" step="0.01" min="0" placeholder="0.00">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label rollo-cantidad-label">${tipoSel?.value === 'punto' ? 'Kilos *' : 'Metros *'}</label>
         <input type="number" name="variantes[${varIdx}][rollos][${rolloIdx}][metros]"
                class="form-control" step="0.001" min="0.001" placeholder="0.000" required>
       </div>
@@ -387,15 +523,37 @@ require VIEW_PATH . '/layout/header.php';
     container.appendChild(row);
   });
 
+  function recalcStock() {
+    const stockInput = document.getElementById('stock_inicial');
+    if (!stockInput) return;
+    let total = 0;
+    container.querySelectorAll('input[name*="[metros]"]').forEach(inp => {
+      total += parseFloat(inp.value) || 0;
+    });
+    stockInput.value = total.toFixed(3);
+  }
+
+  container.addEventListener('input', e => {
+    if (e.target.name && e.target.name.includes('[metros]')) recalcStock();
+  });
+
   container.addEventListener('click', e => {
+    // Escanear barcode con cámara
+    const btnScan = e.target.closest('.btn-scan-barcode');
+    if (btnScan) {
+      startScanner(btnScan.previousElementSibling);
+      return;
+    }
     // Quitar variante
     if (e.target.closest('.btn-remove-variante')) {
       e.target.closest('.variante-row').remove();
+      recalcStock();
       return;
     }
     // Quitar rollo
     if (e.target.closest('.btn-remove-rollo')) {
       e.target.closest('.rollo-row').remove();
+      recalcStock();
       return;
     }
     // Agregar rollo
@@ -407,6 +565,47 @@ require VIEW_PATH . '/layout/header.php';
       rc.appendChild(buildRolloRow(vi, ri));
     }
   });
+
+  // ── Escáner de cámara ────────────────────────────────────
+  let activeScanner   = null;
+  let scanTargetInput = null;
+  const scanModal    = document.getElementById('scanner-modal');
+  const btnCloseScan = document.getElementById('btn-close-scanner');
+  const scanStatus   = document.getElementById('scanner-status');
+
+  function stopScanner() {
+    if (activeScanner) {
+      activeScanner.stop()
+        .then(() => { activeScanner.clear(); activeScanner = null; })
+        .catch(() => {});
+    }
+    if (scanModal) scanModal.style.display = 'none';
+    scanTargetInput = null;
+  }
+
+  function startScanner(inputEl) {
+    if (typeof Html5Qrcode === 'undefined') {
+      alert('La librería de escaneo no está disponible. Verificá tu conexión a internet.');
+      return;
+    }
+    scanTargetInput = inputEl;
+    scanModal.style.display = 'flex';
+    scanStatus.textContent  = 'Apuntá la cámara al código de barras…';
+    // Limpiar preview anterior si quedaron elementos
+    document.getElementById('scanner-preview').innerHTML = '';
+    activeScanner = new Html5Qrcode('scanner-preview');
+    activeScanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 260, height: 100 } },
+      (decoded) => { scanTargetInput.value = decoded; stopScanner(); },
+      () => {}
+    ).catch(err => {
+      scanStatus.textContent = 'No se pudo acceder a la cámara: ' + (err.message || err);
+    });
+  }
+
+  btnCloseScan?.addEventListener('click', stopScanner);
+  scanModal?.addEventListener('click', e => { if (e.target === scanModal) stopScanner(); });
 })();
 </script>
 

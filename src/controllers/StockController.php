@@ -69,11 +69,11 @@ class StockController {
             'descripcion'  => trim($_POST['descripcion']  ?? ''),
             'rinde'        => (float)($_POST['rinde']      ?? 0) ?: null,
             'tipo'         => in_array($_POST['tipo'] ?? '', ['punto','plano']) ? $_POST['tipo'] : null,
-            'subcategoria' => trim($_POST['subcategoria'] ?? '') ?: null,
-            'codigo_barras'=> trim($_POST['codigo_barras'] ?? '') ?: null,
-            'costo'        => (float)($_POST['costo']     ?? 0),
+            'subcategoria' => in_array($_POST['subcategoria'] ?? '', ['atemporal','invierno','verano']) ? $_POST['subcategoria'] : null,
+            'categoria_id' => $catId,
             'precio'       => (float)($_POST['precio']    ?? 0),
             'unidad'       => $unidad,
+            'minimo_venta' => max(0.001, (float)($_POST['minimo_venta'] ?? 1)),
         ];
 
         if (empty($data['nombre'])) {
@@ -99,14 +99,14 @@ class StockController {
             if ($id > 0) {
                 $sql = "UPDATE telas
                         SET nombre=?, descripcion=?, rinde=?,
-                            tipo=?, subcategoria=?,
-                            codigo_barras=?, costo=?, precio=?, unidad=?"
+                            tipo=?, subcategoria=?, categoria_id=?,
+                            precio=?, unidad=?, minimo_venta=?"
                       . ($imagenUrl !== null ? ', imagen_url=?' : '')
                       . " WHERE id=? AND empresa_id=?";
                 $params = [
                     $data['nombre'], $data['descripcion'], $data['rinde'],
-                    $data['tipo'], $data['subcategoria'],
-                    $data['codigo_barras'], $data['costo'], $data['precio'], $data['unidad'],
+                    $data['tipo'], $data['subcategoria'], $data['categoria_id'],
+                    $data['precio'], $data['unidad'], $data['minimo_venta'],
                 ];
                 if ($imagenUrl !== null) $params[] = $imagenUrl;
                 $params[] = $id;
@@ -116,16 +116,15 @@ class StockController {
                 $stmt = $this->db->prepare(
                     "INSERT INTO telas
                      (empresa_id, nombre, descripcion, rinde,
-                      tipo, subcategoria,
-                      codigo_barras, costo, precio, unidad, imagen_url)
+                      tipo, subcategoria, categoria_id,
+                      precio, unidad, minimo_venta, imagen_url)
                      VALUES (?,?,?,?,?,?,?,?,?,?,?)"
                 );
                 $stmt->execute([
                     $eid,
                     $data['nombre'], $data['descripcion'], $data['rinde'],
-                    $data['tipo'], $data['subcategoria'],
-                    $data['codigo_barras'], $data['costo'], $data['precio'],
-                    $data['unidad'], $imagenUrl,
+                    $data['tipo'], $data['subcategoria'], $data['categoria_id'],
+                    $data['precio'], $data['unidad'], $data['minimo_venta'], $imagenUrl,
                 ]);
                 $id = (int)$this->db->lastInsertId();
 
@@ -134,22 +133,23 @@ class StockController {
                 $variantes    = $_POST['variantes'] ?? [];
 
                 if (!empty($variantes) && is_array($variantes)) {
-                    foreach ($variantes as $v) {
-                        $vDesc   = trim($v['descripcion']   ?? '');
-                        $vBarcode= trim($v['codigo_barras'] ?? '');
+                    foreach ($variantes as $vKey => $v) {
+                        $vDesc   = trim($v['descripcion'] ?? '');
                         $vUnidad = in_array($v['unidad'] ?? '', ['metro','kilo','rollo'])
                                    ? $v['unidad'] : $data['unidad'];
-                        $vCosto  = (float)($v['costo']  ?? $data['costo']);
                         $vPrecio = (float)($v['precio'] ?? $data['precio']);
 
-                        if (empty($vDesc) || empty($vBarcode)) continue;
+                        if (empty($vDesc)) continue;
+
+                        // Barcode moves to rollo level; generate a unique placeholder for the variant
+                        $vBarcode = 'T' . $id . '-V' . $vKey;
 
                         $this->db->prepare(
                             "INSERT INTO variantes
                              (tela_id, empresa_id, descripcion, codigo_barras,
-                              unidad, costo, precio, precio_rollo, minimo_venta, stock)
-                             VALUES (?,?,?,?,?,?,?,0,0.100,0)"
-                        )->execute([$id, $eid, $vDesc, $vBarcode, $vUnidad, $vCosto, $vPrecio]);
+                              unidad, precio, precio_rollo, minimo_venta, stock)
+                             VALUES (?,?,?,?,?,?,0,?,0)"
+                        )->execute([$id, $eid, $vDesc, $vBarcode, $vUnidad, $vPrecio, $data['minimo_venta']]);
                         $varId = (int)$this->db->lastInsertId();
 
                         // Rollos de esta variante
@@ -157,13 +157,15 @@ class StockController {
                         if (is_array($rollos)) {
                             $stockTotal = 0.0;
                             foreach ($rollos as $r) {
-                                $metros    = (float)($r['metros']    ?? 0);
-                                $nroRollo  = trim($r['nro_rollo'] ?? '');
+                                $metros   = (float)($r['metros']        ?? 0);
+                                $nroRollo = trim($r['nro_rollo']        ?? '');
+                                $rBarcode = trim($r['codigo_barras']    ?? '') ?: null;
+                                $rCosto   = (float)($r['costo']         ?? 0);
                                 if ($metros <= 0) continue;
                                 $this->db->prepare(
-                                    "INSERT INTO rollos (variante_id, empresa_id, nro_rollo, metros)
-                                     VALUES (?,?,?,?)"
-                                )->execute([$varId, $eid, $nroRollo, $metros]);
+                                    "INSERT INTO rollos (variante_id, empresa_id, nro_rollo, codigo_barras, costo, metros)
+                                     VALUES (?,?,?,?,?,?)"
+                                )->execute([$varId, $eid, $nroRollo, $rBarcode, $rCosto, $metros]);
                                 $stockTotal += $metros;
                             }
                             if ($stockTotal > 0) {
@@ -184,13 +186,13 @@ class StockController {
                     $this->db->prepare(
                         "INSERT INTO variantes
                          (tela_id, empresa_id, descripcion, codigo_barras,
-                          unidad, costo, precio, precio_rollo, minimo_venta, stock)
-                         VALUES (?,?,?,?,?,?,?,0,0.100,?)"
+                          unidad, precio, precio_rollo, minimo_venta, stock)
+                         VALUES (?,?,?,?,?,?,0,?,?)"
                     )->execute([
                         $id, $eid, 'General',
-                        $data['codigo_barras'] ?? 'GEN-' . $id,
-                        $data['unidad'], $data['costo'], $data['precio'],
-                        $stockInicial,
+                        'GEN-' . $id,
+                        $data['unidad'], $data['precio'],
+                        $data['minimo_venta'], $stockInicial,
                     ]);
                 }
             }
