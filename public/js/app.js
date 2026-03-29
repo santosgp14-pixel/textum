@@ -385,6 +385,7 @@ if (pedidoForm) {
     fd.append('variante_id', mAIvar.id);
     fd.append('cantidad',    cantidad);
     fd.append('precio_unit', precio);
+    if (_mAIrollo?.id) fd.append('rollo_id', _mAIrollo.id);
     fetch('index.php?page=pedido_item_add', { method: 'POST', body: fd })
       .then(r => r.json())
       .then(data => {

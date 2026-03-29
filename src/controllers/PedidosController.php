@@ -91,6 +91,7 @@ class PedidosController {
         $variante_id= (int)($_POST['variante_id']?? 0);
         $cantidad   = (float)($_POST['cantidad'] ?? 0);
         $precioCustom = (float)($_POST['precio_unit'] ?? 0);
+        $rollo_id   = (int)($_POST['rollo_id'] ?? 0) ?: null;
 
         // Validaciones básicas
         $pedido = $this->findPedido($pedido_id, $eid);
@@ -131,15 +132,15 @@ class PedidosController {
             $precio   = $precioCustom > 0 ? $precioCustom : (float)$existente['precio_unit'];
             $subtotal = round($cantidad * $precio, 2);
             $this->db->prepare(
-                "UPDATE pedido_items SET cantidad = ?, precio_unit = ?, subtotal = ? WHERE id = ?"
-            )->execute([$cantidad, $precio, $subtotal, $existente['id']]);
+                "UPDATE pedido_items SET cantidad = ?, precio_unit = ?, subtotal = ?, rollo_id = ? WHERE id = ?"
+            )->execute([$cantidad, $precio, $subtotal, $rollo_id, $existente['id']]);
         } else {
             $precio   = $precioCustom > 0 ? $precioCustom : (float)$variante['precio'];
             $subtotal = round($cantidad * $precio, 2);
             $this->db->prepare(
-                "INSERT INTO pedido_items (pedido_id, variante_id, cantidad, precio_unit, subtotal)
-                 VALUES (?,?,?,?,?)"
-            )->execute([$pedido_id, $variante_id, $cantidad, $precio, $subtotal]);
+                "INSERT INTO pedido_items (pedido_id, variante_id, rollo_id, cantidad, precio_unit, subtotal)
+                 VALUES (?,?,?,?,?,?)"
+            )->execute([$pedido_id, $variante_id, $rollo_id, $cantidad, $precio, $subtotal]);
         }
 
         // Recalcular total del pedido
@@ -279,6 +280,13 @@ class PedidosController {
                 $this->db->prepare(
                     "UPDATE variantes SET stock = ? WHERE id = ?"
                 )->execute([$stock_despues, $item['variante_id']]);
+
+                // Marcar rollo como agotado si este ítem vino de un rollo específico
+                if (!empty($item['rollo_id'])) {
+                    $this->db->prepare(
+                        "UPDATE rollos SET estado = 'agotado' WHERE id = ? AND empresa_id = ?"
+                    )->execute([$item['rollo_id'], $eid]);
+                }
 
                 // Registrar movimiento de stock
                 $this->db->prepare(

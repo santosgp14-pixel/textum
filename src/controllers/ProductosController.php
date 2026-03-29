@@ -14,24 +14,18 @@ class ProductosController {
         Auth::require();
         $eid = Auth::empresaId();
 
-        // Detectar si la migración v1.4 ya fue aplicada (columnas nuevas en telas)
-        $migratedV14 = false;
-        try {
-            $this->db->query("SELECT tipo FROM telas LIMIT 0");
-            $migratedV14 = true;
-        } catch (PDOException $e) { /* columna no existe aún */ }
-
-        $hasPrecioRollo = false;
-        try {
-            $this->db->query("SELECT precio_rollo FROM variantes LIMIT 0");
-            $hasPrecioRollo = true;
-        } catch (PDOException $e) {}
-
-        $hasCostoRollo = false;
-        try {
-            $this->db->query("SELECT costo FROM rollos LIMIT 0");
-            $hasCostoRollo = true;
-        } catch (PDOException $e) {}
+        // Detectar si las migraciones ya fueron aplicadas — se cachea en sesión
+        // para no hacer 3 queries extra en cada carga de página
+        if (!isset($_SESSION['_schema_caps'])) {
+            $caps = ['v14' => false, 'precioRollo' => false, 'costoRollo' => false];
+            try { $this->db->query("SELECT tipo FROM telas LIMIT 0");           $caps['v14']         = true; } catch (PDOException $e) {}
+            try { $this->db->query("SELECT precio_rollo FROM variantes LIMIT 0"); $caps['precioRollo'] = true; } catch (PDOException $e) {}
+            try { $this->db->query("SELECT costo FROM rollos LIMIT 0");           $caps['costoRollo']  = true; } catch (PDOException $e) {}
+            $_SESSION['_schema_caps'] = $caps;
+        }
+        $migratedV14    = $_SESSION['_schema_caps']['v14'];
+        $hasPrecioRollo = $_SESSION['_schema_caps']['precioRollo'];
+        $hasCostoRollo  = $_SESSION['_schema_caps']['costoRollo'];
 
         $extraCols    = $migratedV14
             ? 't.tipo, t.rinde, t.unidad, t.imagen_url,'

@@ -19,7 +19,7 @@ ALTER TABLE `telas`
                                AFTER `subcategoria`,
   ADD COLUMN `precio`          DECIMAL(12,2) NOT NULL DEFAULT 0.00
                                COMMENT 'Precio de venta base por unidad'
-                               AFTER `costo`,
+                               AFTER `rinde`,
   ADD COLUMN `unidad`          ENUM('metro','kilo','rollo') NOT NULL DEFAULT 'metro'
                                COMMENT 'Unidad de venta predeterminada'
                                AFTER `precio`,
