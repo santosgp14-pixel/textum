@@ -4,6 +4,31 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= htmlspecialchars($pageTitle ?? 'Textum') ?> — Textum</title>
+
+  <!-- PWA: Manifest -->
+  <link rel="manifest" href="<?= BASE_URL ?>/manifest.php">
+
+  <!-- PWA: Tema y color de barra de estado -->
+  <meta name="theme-color" content="#1a4080">
+  <meta name="msapplication-navbutton-color" content="#1a4080">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <!-- PWA: iOS (Safari) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Textum">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <!-- PWA: Iconos iOS (apple-touch-icon) -->
+  <link rel="apple-touch-icon" sizes="180x180" href="<?= BASE_URL ?>/assets/icon-180.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="<?= BASE_URL ?>/assets/icon-152.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="<?= BASE_URL ?>/assets/icon-144.png">
+  <link rel="apple-touch-icon" sizes="128x128" href="<?= BASE_URL ?>/assets/icon-128.png">
+
+  <!-- PWA: Favicon -->
+  <link rel="icon" type="image/png" sizes="192x192" href="<?= BASE_URL ?>/assets/icon-192.png">
+  <link rel="icon" type="image/png" sizes="96x96"   href="<?= BASE_URL ?>/assets/icon-96.png">
+
+  <!-- Estilos -->
   <link rel="stylesheet" href="<?= BASE_URL ?>/css/app.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Josefin+Sans:wght@300;600;700&display=swap" rel="stylesheet">

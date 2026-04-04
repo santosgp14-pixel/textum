@@ -4,6 +4,14 @@
  */
 'use strict';
 
+// ── PWA: Service Worker ─────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
+      .catch(err => console.warn('SW registro fallido:', err));
+  });
+}
+
 // ── Sidebar mobile ──────────────────────────────────────────────
 const sidebar  = document.getElementById('sidebar');
 const overlay  = document.getElementById('overlay');
