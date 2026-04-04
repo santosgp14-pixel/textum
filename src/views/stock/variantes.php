@@ -20,12 +20,12 @@ require VIEW_PATH . '/layout/header.php';
       <thead>
         <tr>
           <th>Descripción</th>
-          <th>Código barras</th>
-          <th>Unidad</th>
-          <th>Mínimo venta</th>
-          <th>Costo</th>
-          <th>Precio rollo</th>
-          <th>Precio frac.</th>
+          <th class="hide-mobile">Código barras</th>
+          <th class="hide-mobile">Unidad</th>
+          <th class="hide-mobile">Mínimo venta</th>
+          <th class="hide-mobile">Costo</th>
+          <th class="hide-mobile">$ rollo</th>
+          <th>$ frac.</th>
           <th>Stock</th>
           <th>Acciones</th>
         </tr>
@@ -34,11 +34,11 @@ require VIEW_PATH . '/layout/header.php';
         <?php foreach ($variantes as $v): ?>
         <tr>
           <td class="font-bold"><?= htmlspecialchars($v['descripcion']) ?></td>
-          <td><code style="font-size:.82rem;background:#f3f4f6;padding:2px 6px;border-radius:4px"><?= htmlspecialchars($v['codigo_barras']) ?></code></td>
-          <td><?= $v['unidad'] ?></td>
-          <td><?= number_format($v['minimo_venta'], 3, ',', '.') ?> <?= $v['unidad'] ?></td>
-          <td class="text-muted">$ <?= number_format($v['costo'], 2, ',', '.') ?></td>
-          <td>$ <?= number_format($v['precio_rollo'], 2, ',', '.') ?></td>
+          <td class="hide-mobile"><code style="font-size:.82rem;background:#f3f4f6;padding:2px 6px;border-radius:4px"><?= htmlspecialchars($v['codigo_barras']) ?></code></td>
+          <td class="hide-mobile"><?= $v['unidad'] ?></td>
+          <td class="hide-mobile"><?= number_format($v['minimo_venta'], 3, ',', '.') ?> <?= $v['unidad'] ?></td>
+          <td class="hide-mobile text-muted">$ <?= number_format($v['costo'], 2, ',', '.') ?></td>
+          <td class="hide-mobile">$ <?= number_format($v['precio_rollo'], 2, ',', '.') ?></td>
           <td class="font-bold">$ <?= number_format($v['precio'], 2, ',', '.') ?></td>
           <td>
             <span class="<?= $v['stock'] < 5 ? 'text-danger font-bold' : 'text-success font-bold' ?>">
@@ -56,9 +56,13 @@ require VIEW_PATH . '/layout/header.php';
         <?php endforeach; ?>
         <?php if (empty($variantes)): ?>
         <tr>
-          <td colspan="10" class="text-center text-muted" style="padding:32px">
-            No hay variantes.
-            <a href="index.php?page=variante_nueva&tela_id=<?= $tela['id'] ?>">Crear la primera</a>
+          <td colspan="10">
+            <div class="empty-state">
+              <div class="empty-state-icon">🎨</div>
+              <div class="empty-state-title">No hay variantes</div>
+              <div class="empty-state-text">Agregá colores o variantes a este producto.</div>
+              <a href="index.php?page=variante_nueva&tela_id=<?= $tela['id'] ?>" class="btn btn-primary btn-sm">＋ Nueva variante</a>
+            </div>
           </td>
         </tr>
         <?php endif; ?>

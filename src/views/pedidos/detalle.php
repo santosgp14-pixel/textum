@@ -77,7 +77,7 @@ require VIEW_PATH . '/layout/header.php';
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Producto</th><th>Unidad</th><th>Cantidad</th><th>Precio unit.</th><th>Subtotal</th></tr>
+          <tr><th>Producto</th><th class="hide-mobile">Unidad</th><th>Cantidad</th><th class="hide-mobile">Precio unit.</th><th>Subtotal</th></tr>
         </thead>
         <tbody>
           <?php foreach ($items as $item): ?>
@@ -87,16 +87,16 @@ require VIEW_PATH . '/layout/header.php';
               <div class="text-sm text-muted"><?= htmlspecialchars($item['descripcion']) ?></div>
               <div class="text-xs text-muted">$&thinsp;<?= number_format($item['precio_unit'], 2, ',', '.') ?>&thinsp;/&thinsp;<?= $item['unidad'] ?></div>
             </td>
-            <td><?= $item['unidad'] ?></td>
+            <td class="hide-mobile"><?= $item['unidad'] ?></td>
             <td><?= number_format($item['cantidad'], 3, ',', '.') ?></td>
-            <td>$ <?= number_format($item['precio_unit'], 2, ',', '.') ?></td>
+            <td class="hide-mobile">$ <?= number_format($item['precio_unit'], 2, ',', '.') ?></td>
             <td class="font-bold">$ <?= number_format($item['subtotal'], 2, ',', '.') ?></td>
           </tr>
           <?php endforeach; ?>
         </tbody>
         <tfoot>
           <tr style="background:var(--gray-50)">
-            <td colspan="4" class="text-right font-bold" style="padding:12px 14px">TOTAL</td>
+            <td colspan="2" class="hide-mobile"></td><td colspan="2" class="text-right font-bold" style="padding:12px 14px">TOTAL</td>
             <td class="font-bold" style="font-size:1.1rem;padding:12px 14px">
               $ <?= number_format($pedido['total'], 2, ',', '.') ?>
             </td>

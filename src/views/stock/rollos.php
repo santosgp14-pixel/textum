@@ -48,19 +48,19 @@ require VIEW_PATH . '/layout/header.php';
     <table>
       <thead>
         <tr>
-          <th>#</th>
+          <th class="hide-mobile">#</th>
           <th>Código barras</th>
-          <th>N° Rollo</th>
+          <th class="hide-mobile">N° Rollo</th>
           <th>Cantidad</th>
           <th>Estado</th>
-          <th>Ingresado</th>
+          <th class="hide-mobile">Ingresado</th>
           <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
         <?php foreach ($rollos as $r): ?>
         <tr>
-          <td class="text-muted text-sm"><?= $r['id'] ?></td>
+          <td class="hide-mobile text-muted text-sm"><?= $r['id'] ?></td>
           <td>
             <?php if ($r['codigo_barras']): ?>
               <code style="font-size:.8rem;background:#f3f4f6;padding:2px 6px;border-radius:4px">
@@ -70,7 +70,7 @@ require VIEW_PATH . '/layout/header.php';
               <span class="text-muted">—</span>
             <?php endif; ?>
           </td>
-          <td class="font-bold"><?= htmlspecialchars($r['nro_rollo'] ?: '—') ?></td>
+          <td class="hide-mobile font-bold"><?= htmlspecialchars($r['nro_rollo'] ?: '—') ?></td>
           <td class="font-bold">
             <?= number_format($r['metros'], 3, ',', '.') ?>
             <span class="text-sm text-muted"><?= $variante['unidad'] ?></span>
@@ -80,7 +80,7 @@ require VIEW_PATH . '/layout/header.php';
               <?= ucfirst($r['estado']) ?>
             </span>
           </td>
-          <td class="text-sm"><?= date('d/m/Y', strtotime($r['created_at'])) ?></td>
+          <td class="hide-mobile text-sm"><?= date('d/m/Y', strtotime($r['created_at'])) ?></td>
           <td>
             <div class="flex gap-2">
               <a href="index.php?page=rollo_editar&id=<?= $r['id'] ?>" class="btn btn-sm btn-outline">Editar</a>

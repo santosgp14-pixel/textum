@@ -2,6 +2,9 @@
 $pageTitle   = 'Cliente: ' . htmlspecialchars($cliente['nombre']);
 $currentPage = 'clientes';
 require VIEW_PATH . '/layout/header.php';
+
+// Inicial del cliente para el avatar
+$inicial = mb_strtoupper(mb_substr(trim($cliente['nombre']), 0, 1));
 ?>
 
 <div style="margin-bottom:16px" class="flex items-center gap-3 flex-wrap">
@@ -12,37 +15,48 @@ require VIEW_PATH . '/layout/header.php';
 <!-- Header del cliente -->
 <div class="card" style="margin-bottom:20px">
   <div class="card-body">
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px">
-      <div>
-        <div class="text-xs text-muted">Cliente</div>
-        <div class="font-bold" style="font-size:1.15rem"><?= htmlspecialchars($cliente['nombre']) ?></div>
-        <?php if ($cliente['telefono']): ?>
-          <div class="text-sm text-muted" style="margin-top:2px"><?= htmlspecialchars($cliente['telefono']) ?></div>
-        <?php endif; ?>
-        <?php if ($cliente['email']): ?>
-          <div class="text-sm text-muted"><?= htmlspecialchars($cliente['email']) ?></div>
-        <?php endif; ?>
-      </div>
-      <div>
-        <div class="text-xs text-muted">Pedidos confirmados</div>
-        <div class="font-bold" style="font-size:1.6rem"><?= (int)$stats['total_pedidos'] ?></div>
-      </div>
-      <div>
-        <div class="text-xs text-muted">Total comprado</div>
-        <div class="font-bold" style="font-size:1.2rem">
-          $ <?= number_format((float)$stats['total_comprado'], 2, ',', '.') ?>
-        </div>
-      </div>
-      <div>
-        <div class="text-xs text-muted">Última compra</div>
-        <div class="font-bold">
-          <?= $stats['ultima_compra'] ? date('d/m/Y', strtotime($stats['ultima_compra'])) : '—' ?>
+    <div class="profile-header" style="margin-bottom:20px">
+      <div class="profile-avatar"><?= $inicial ?></div>
+      <div class="profile-info">
+        <div class="profile-name"><?= htmlspecialchars($cliente['nombre']) ?></div>
+        <div class="profile-meta">
+          <?php if ($cliente['telefono']): ?>
+            📞 <?= htmlspecialchars($cliente['telefono']) ?>
+          <?php endif; ?>
+          <?php if ($cliente['email']): ?>
+            <?= $cliente['telefono'] ? ' · ' : '' ?>✉ <?= htmlspecialchars($cliente['email']) ?>
+          <?php endif; ?>
+          <?php if (!$cliente['telefono'] && !$cliente['email']): ?>
+            Sin datos de contacto
+          <?php endif; ?>
         </div>
       </div>
     </div>
+
+    <!-- KPIs del cliente -->
+    <div class="stats-grid" style="margin-bottom:0">
+      <div class="stat-card stat-card--green">
+        <div class="stat-label">Pedidos</div>
+        <div class="stat-value"><?= (int)$stats['total_pedidos'] ?></div>
+        <div class="stat-sub">confirmados</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total comprado</div>
+        <div class="stat-value stat-value--sm">$ <?= number_format((float)$stats['total_comprado'], 2, ',', '.') ?></div>
+        <div class="stat-sub">en pesos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Última compra</div>
+        <div class="stat-value stat-value--sm">
+          <?= $stats['ultima_compra'] ? date('d/m/Y', strtotime($stats['ultima_compra'])) : '—' ?>
+        </div>
+        <div class="stat-sub"><?= $stats['ultima_compra'] ? date('H:i', strtotime($stats['ultima_compra'])) : 'sin pedidos' ?></div>
+      </div>
+    </div>
+
     <?php if ($cliente['notas']): ?>
       <div class="alert alert-warn" style="margin-top:16px;font-size:.85rem">
-        <strong>Notas:</strong> <?= htmlspecialchars($cliente['notas']) ?>
+        <span>📝</span><span><strong>Nota:</strong> <?= htmlspecialchars($cliente['notas']) ?></span>
       </div>
     <?php endif; ?>
   </div>
@@ -54,7 +68,7 @@ require VIEW_PATH . '/layout/header.php';
   <?php if (!empty($productos_top)): ?>
   <div class="card">
     <div class="card-header">
-      <span class="card-title">📊 Productos más comprados</span>
+      <span class="card-title">Productos frecuentes</span>
     </div>
     <div class="table-wrap">
       <table>
@@ -73,11 +87,11 @@ require VIEW_PATH . '/layout/header.php';
               <div class="font-bold"><?= htmlspecialchars($p['tela']) ?></div>
               <div class="text-xs text-muted"><?= htmlspecialchars($p['descripcion']) ?></div>
             </td>
-            <td>
+            <td class="font-bold">
               <?= number_format($p['total_cantidad'], 3, ',', '.') ?>
               <span class="text-xs text-muted"><?= $p['unidad'] ?></span>
             </td>
-            <td class="text-muted"><?= (int)$p['veces'] ?></td>
+            <td><span class="badge badge-blue"><?= (int)$p['veces'] ?>×</span></td>
             <td class="font-bold">$ <?= number_format($p['total_monto'], 2, ',', '.') ?></td>
           </tr>
           <?php endforeach; ?>
@@ -90,12 +104,19 @@ require VIEW_PATH . '/layout/header.php';
   <!-- Historial de pedidos -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">🧾 Historial de pedidos</span>
+      <span class="card-title">Historial de pedidos</span>
     </div>
+    <?php if (empty($pedidos)): ?>
+    <div class="empty-state">
+      <div class="empty-state-icon">🧾</div>
+      <div class="empty-state-title">Sin pedidos aún</div>
+      <a href="index.php?page=pedido_nuevo" class="btn btn-primary btn-sm">Crear pedido</a>
+    </div>
+    <?php else: ?>
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>#</th><th>Fecha</th><th>Estado</th><th>Vendedor</th><th>Total</th></tr>
+          <tr><th>#</th><th>Fecha</th><th>Estado</th><th class="hide-mobile">Vendedor</th><th>Total</th></tr>
         </thead>
         <tbody>
           <?php foreach ($pedidos as $p): ?>
@@ -106,20 +127,14 @@ require VIEW_PATH . '/layout/header.php';
             </td>
             <td class="text-sm"><?= date('d/m/Y', strtotime($p['created_at'])) ?></td>
             <td><span class="badge badge-<?= $p['estado'] ?>"><?= ucfirst($p['estado']) ?></span></td>
-            <td class="text-sm text-muted"><?= htmlspecialchars($p['vendedor_nombre']) ?></td>
+            <td class="text-sm text-muted hide-mobile"><?= htmlspecialchars($p['vendedor_nombre']) ?></td>
             <td class="font-bold">$ <?= number_format($p['total'], 2, ',', '.') ?></td>
           </tr>
           <?php endforeach; ?>
-          <?php if (empty($pedidos)): ?>
-          <tr>
-            <td colspan="5" class="text-center text-muted" style="padding:24px">
-              Sin pedidos aún.
-            </td>
-          </tr>
-          <?php endif; ?>
         </tbody>
       </table>
     </div>
+    <?php endif; ?>
   </div>
 
 </div>

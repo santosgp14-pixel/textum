@@ -10,8 +10,9 @@ class AuthController {
             header('Location: ' . BASE_URL . '/index.php?page=dashboard');
             exit;
         }
-        $error = $_SESSION['login_error'] ?? null;
-        unset($_SESSION['login_error']);
+        $error      = $_SESSION['login_error'] ?? null;
+        $lastEmail  = $_SESSION['login_email'] ?? '';
+        unset($_SESSION['login_error'], $_SESSION['login_email']);
         require VIEW_PATH . '/auth/login.php';
     }
 
@@ -19,12 +20,20 @@ class AuthController {
         $email    = trim($_POST['email']    ?? '');
         $password = trim($_POST['password'] ?? '');
 
+        if ($email === '' || $password === '') {
+            $_SESSION['login_error'] = 'Completá tu email y contraseña.';
+            $_SESSION['login_email'] = $email;
+            header('Location: ' . BASE_URL . '/index.php?page=login');
+            exit;
+        }
+
         if (Auth::login($email, $password)) {
             header('Location: ' . BASE_URL . '/index.php?page=dashboard');
             exit;
         }
 
         $_SESSION['login_error'] = 'Email o contraseña incorrectos.';
+        $_SESSION['login_email'] = $email;
         header('Location: ' . BASE_URL . '/index.php?page=login');
         exit;
     }

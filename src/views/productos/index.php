@@ -61,13 +61,13 @@ function fNum(float $n, int $dec = 1): string {
       <thead>
         <tr>
           <th>Producto</th>
-          <th>Tipo</th>
-          <th style="text-align:right">Kilos</th>
+          <th class="hide-mobile">Tipo</th>
+          <th class="hide-mobile" style="text-align:right">Kilos</th>
           <th style="text-align:right">Metros</th>
-          <th style="text-align:right">$ x&nbsp;rollo</th>
+          <th class="hide-mobile" style="text-align:right">$ x&nbsp;rollo</th>
           <th style="text-align:right">$ x&nbsp;metro</th>
-          <th style="text-align:right">Rinde</th>
-          <th style="text-align:right">Costo&nbsp;prom.</th>
+          <th class="hide-mobile" style="text-align:right">Rinde</th>
+          <th class="hide-mobile" style="text-align:right">Costo&nbsp;prom.</th>
           <th style="text-align:center">Var.</th>
         </tr>
       </thead>
@@ -90,27 +90,27 @@ function fNum(float $n, int $dec = 1): string {
             </div>
             <?php endif; ?>
           </td>
-          <td>
+          <td class="hide-mobile">
             <span class="badge <?= $p['tipo'] === 'punto' ? 'badge-blue' : 'badge-abierto' ?>">
               <?= htmlspecialchars($p['tipo'] ?? '—') ?>
             </span>
           </td>
-          <td style="text-align:right;font-variant-numeric:tabular-nums">
+          <td class="hide-mobile" style="text-align:right;font-variant-numeric:tabular-nums">
             <?= $p['stock_kilos'] > 0 ? fNum($p['stock_kilos']) : '<span class="text-muted">—</span>' ?>
           </td>
           <td style="text-align:right;font-variant-numeric:tabular-nums">
             <?= $p['stock_metros'] > 0 ? fNum($p['stock_metros']) : '<span class="text-muted">—</span>' ?>
           </td>
-          <td style="text-align:right;font-variant-numeric:tabular-nums">
+          <td class="hide-mobile" style="text-align:right;font-variant-numeric:tabular-nums">
             <?= $p['avg_precio_rollo'] > 0 ? fPesos($p['avg_precio_rollo']) : '<span class="text-muted">—</span>' ?>
           </td>
           <td style="text-align:right;font-variant-numeric:tabular-nums">
             <?= $p['avg_precio_metro'] > 0 ? fPesos($p['avg_precio_metro']) : '<span class="text-muted">—</span>' ?>
           </td>
-          <td style="text-align:right;font-variant-numeric:tabular-nums">
+          <td class="hide-mobile" style="text-align:right;font-variant-numeric:tabular-nums">
             <?= $p['rinde'] > 0 ? fNum((float)$p['rinde'], 2) : '<span class="text-muted">—</span>' ?>
           </td>
-          <td style="text-align:right;font-variant-numeric:tabular-nums">
+          <td class="hide-mobile" style="text-align:right;font-variant-numeric:tabular-nums">
             <?= $p['avg_costo'] > 0 ? fPesos($p['avg_costo']) : '<span class="text-muted">—</span>' ?>
           </td>
           <td style="text-align:center">

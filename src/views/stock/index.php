@@ -34,9 +34,9 @@ $catFiltro = (int)($_GET['cat'] ?? 0);
       <thead>
         <tr>
           <th>Producto</th>
-          <th>Categoría</th>
-          <th>Categoría</th>
-          <th>Colores / variantes</th>
+          <th class="hide-mobile">Categoría</th>
+          <th class="hide-mobile">Tipo</th>
+          <th class="hide-mobile">Colores</th>
           <th>Acciones</th>
         </tr>
       </thead>
@@ -49,7 +49,7 @@ $catFiltro = (int)($_GET['cat'] ?? 0);
               <div class="text-sm text-muted hide-mobile"><?= htmlspecialchars($t['descripcion']) ?></div>
             <?php endif; ?>
           </td>
-          <td>
+          <td class="hide-mobile">
             <?php if ($t['categoria_nombre']): ?>
               <a href="index.php?page=stock&cat=<?= $t['categoria_id'] ?>" class="badge badge-blue">
                 <?= htmlspecialchars($t['categoria_nombre']) ?>
@@ -58,7 +58,7 @@ $catFiltro = (int)($_GET['cat'] ?? 0);
               <span class="text-muted text-sm">—</span>
             <?php endif; ?>
           </td>
-          <td class="text-sm">
+          <td class="hide-mobile text-sm">
             <?php if (!empty($t['tipo'])): ?>
               <span class="badge <?= $t['tipo'] === 'punto' ? 'badge-blue' : 'badge-gray' ?>"><?= ucfirst($t['tipo']) ?></span>
             <?php endif; ?>
@@ -66,12 +66,12 @@ $catFiltro = (int)($_GET['cat'] ?? 0);
               <span class="text-xs text-muted" style="display:block;margin-top:2px"><?= htmlspecialchars($t['subcategoria']) ?></span>
             <?php endif; ?>
           </td>
-          <td>
-            <span class="badge badge-blue"><?= (int)$t['variantes_activas'] ?> colores</span>
+          <td class="hide-mobile">
+            <span class="badge badge-blue"><?= (int)$t['variantes_activas'] ?> color<?= $t['variantes_activas'] != 1 ? 'es' : '' ?></span>
           </td>
           <td>
             <div class="flex gap-2">
-              <a href="index.php?page=variantes&tela_id=<?= $t['id'] ?>" class="btn btn-sm btn-primary">Variantes</a>
+              <a href="index.php?page=variantes&tela_id=<?= $t['id'] ?>" class="btn btn-sm btn-primary">Ver variantes</a>
               <a href="index.php?page=tela_editar&id=<?= $t['id'] ?>"    class="btn btn-sm btn-outline">Editar</a>
             </div>
           </td>
@@ -79,9 +79,13 @@ $catFiltro = (int)($_GET['cat'] ?? 0);
         <?php endforeach; ?>
         <?php if (empty($telas)): ?>
         <tr>
-          <td colspan="5" class="text-center text-muted" style="padding:32px">
-            No hay productos cargados.
-            <a href="index.php?page=tela_nueva">Crear el primero</a>
+          <td colspan="5">
+            <div class="empty-state">
+              <div class="empty-state-icon">📦</div>
+              <div class="empty-state-title">No hay productos cargados</div>
+              <div class="empty-state-text">Creá el primer producto para empezar a gestionar el stock.</div>
+              <a href="index.php?page=tela_nueva" class="btn btn-primary btn-sm">＋ Crear producto</a>
+            </div>
           </td>
         </tr>
         <?php endif; ?>
