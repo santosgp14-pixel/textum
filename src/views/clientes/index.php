@@ -8,7 +8,7 @@ require VIEW_PATH . '/layout/header.php';
   <div class="card-header">
     <span class="card-title">Clientes</span>
     <div class="flex gap-2 items-center">
-      <div class="table-search-wrap" style="width:200px">
+      <div class="table-search-wrap">
         <svg class="search-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         <input type="search" class="table-search-input" id="search-clientes" placeholder="Buscar…">
         <button class="search-clear" title="Limpiar">✕</button>

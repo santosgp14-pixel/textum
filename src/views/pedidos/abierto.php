@@ -56,7 +56,7 @@ require VIEW_PATH . '/layout/header.php';
 
       <!-- Toggle de vista -->
       <div class="flex gap-2 mb-3 flex-wrap" style="align-items:center">
-        <span class="text-sm" style="font-weight:600;line-height:2rem">Agregar artículo:</span>
+
         <button type="button" class="btn btn-sm btn-primary btn-vista" data-vista="scanner">⌨ Escáner</button>
         <button type="button" class="btn btn-sm btn-outline btn-vista" data-vista="imagenes">🖼 Imágenes</button>
         <button type="button" class="btn btn-sm btn-outline btn-vista" data-vista="lista">☰ Lista</button>

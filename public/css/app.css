@@ -757,13 +757,17 @@ tbody tr:last-child td { border-bottom: none; }
   .hide-mobile { display: none !important; }
   /* Nombre de usuario en topbar oculto en pantallas muy pequeñas */
   .topbar-user { display: none; }
-  /* Zona de escaneo: apilar inputs en columna */
-  .barcode-zone .barcode-inputs {
-    flex-direction: column;
-    align-items: stretch;
-  }
+  /* Zona de escaneo: input full-width, botón cámara compacto */
+  .barcode-zone { padding: 16px; }
+  .barcode-zone > div { max-width: 100% !important; }
   .barcode-zone .form-control { max-width: 100% !important; width: 100% !important; }
-  .barcode-zone .btn { width: 100%; justify-content: center; }
+  .barcode-zone #btn-camara { width: auto; flex-shrink: 0; white-space: nowrap; }
+  /* Botones de vista: distribuir en fila sin desborde */
+  .btn-vista { flex: 1 1 0; text-align: center; justify-content: center; }
+  /* Card-header: apilar en columna en mobile */
+  .card-header { flex-direction: column; align-items: stretch; gap: 10px; }
+  .card-header > .flex { flex-wrap: wrap; }
+  .card-header .table-search-wrap { width: 100% !important; flex: 1 1 0; min-width: 0; }
   /* Cantidad editable en tabla: ancho automático en mobile */
   .qty-inline { width: 64px !important; }
 

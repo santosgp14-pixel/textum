@@ -23,7 +23,7 @@ $catFiltro = (int)($_GET['cat'] ?? 0);
   <div class="card-header" style="flex-wrap:wrap;gap:8px">
     <span class="card-title">Productos<?= $catFiltro ? ' — '.htmlspecialchars(array_column($categorias,'nombre','id')[$catFiltro] ?? '') : '' ?></span>
     <div class="flex gap-2 items-center flex-wrap">
-      <div class="table-search-wrap" style="width:180px">
+      <div class="table-search-wrap">
         <svg class="search-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         <input type="search" class="table-search-input" id="search-stock" placeholder="Buscar…">
         <button class="search-clear" title="Limpiar">✕</button>
