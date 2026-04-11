@@ -442,6 +442,38 @@ class PedidosController {
         exit;
     }
 
+    // ──────────────────────────────────────────────────────────
+    // Buscar variantes por nombre / descripción (AJAX)
+    // ──────────────────────────────────────────────────────────
+
+    public function buscarVariantes(): void {
+        Auth::require();
+        header('Content-Type: application/json');
+        $eid = Auth::empresaId();
+        $q   = trim($_GET['q'] ?? '');
+
+        if (strlen($q) < 2) {
+            echo json_encode(['ok' => true, 'variantes' => []]);
+            exit;
+        }
+
+        $like = '%' . $q . '%';
+        $stmt = $this->db->prepare(
+            "SELECT v.id, v.descripcion, v.unidad, v.precio, v.precio_rollo,
+                    v.minimo_venta, v.stock, v.codigo_barras,
+                    t.id AS tela_id, t.nombre AS tela_nombre, t.imagen_url, t.tipo
+             FROM variantes v
+             JOIN telas t ON t.id = v.tela_id
+             WHERE v.empresa_id = ? AND v.activa = 1 AND v.stock > 0
+               AND (t.nombre LIKE ? OR v.descripcion LIKE ?)
+             ORDER BY t.nombre, v.descripcion
+             LIMIT 15"
+        );
+        $stmt->execute([$eid, $like, $like]);
+        echo json_encode(['ok' => true, 'variantes' => $stmt->fetchAll()]);
+        exit;
+    }
+
     // ──────────────────────────────────────────────────────    // Detalle de pedido (cualquier estado)
     // ──────────────────────────────────────────────────────────
 
@@ -451,7 +483,53 @@ class PedidosController {
         $eid    = Auth::empresaId();
         $pedido = $this->findPedido($id, $eid);
         $items  = $this->getItems($id);
+        // Token para recibo público compartible (sin DB)
+        $receiptToken = hash_hmac('sha256', 'receipt:' . $id, APP_SECRET);
         require VIEW_PATH . '/pedidos/detalle.php';
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // Recibo público (sin autenticación)
+    // ──────────────────────────────────────────────────────────
+
+    public function reciboPub(): void {
+        $id    = (int)($_GET['pedido'] ?? 0);
+        $token = $_GET['t'] ?? '';
+
+        if (!$id || !$this->validarTokenRecibo($id, $token)) {
+            http_response_code(403);
+            echo '<h2 style="font-family:sans-serif;text-align:center;margin-top:60px">Enlace inválido o expirado.</h2>';
+            exit;
+        }
+
+        $stmt = $this->db->prepare(
+            "SELECT p.*, u.nombre AS vendedor_nombre, c.nombre AS cliente_nombre,
+                    e.nombre AS empresa_nombre, e.whatsapp, e.logo_url
+             FROM pedidos p
+             JOIN usuarios u ON u.id = p.usuario_id
+             JOIN empresas e ON e.id = p.empresa_id
+             LEFT JOIN clientes c ON c.id = p.cliente_id
+             WHERE p.id = ? AND p.estado = 'confirmado'"
+        );
+        $stmt->execute([$id]);
+        $pedido = $stmt->fetch();
+
+        if (!$pedido) {
+            http_response_code(404);
+            echo '<h2 style="font-family:sans-serif;text-align:center;margin-top:60px">Recibo no encontrado.</h2>';
+            exit;
+        }
+
+        $empresa = [
+            'nombre'   => $pedido['empresa_nombre'],
+            'whatsapp' => $pedido['whatsapp']  ?? '',
+            'logo_url' => $pedido['logo_url']  ?? '',
+        ];
+
+        $items        = $this->getItems($id);
+        $receiptToken = $token;
+
+        require VIEW_PATH . '/pedidos/recibo_pub.php';
     }
 
     // ──────────────────────────────────────────────────────────
@@ -496,5 +574,11 @@ class PedidosController {
              WHERE p.id = ?"
         );
         $stmt->execute([$pedido_id]);
+    }
+
+    private function validarTokenRecibo(int $pedidoId, string $token): bool {
+        if (strlen($token) < 10) return false;
+        $esperado = hash_hmac('sha256', 'receipt:' . $pedidoId, APP_SECRET);
+        return hash_equals($esperado, $token);
     }
 }

@@ -7,10 +7,17 @@ require VIEW_PATH . '/layout/header.php';
 <div class="card">
   <div class="card-header">
     <span class="card-title">Clientes</span>
-    <a href="index.php?page=cliente_nuevo" class="btn btn-primary btn-sm">＋ Nuevo cliente</a>
+    <div class="flex gap-2 items-center">
+      <div class="table-search-wrap" style="width:200px">
+        <svg class="search-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="search" class="table-search-input" id="search-clientes" placeholder="Buscar…">
+        <button class="search-clear" title="Limpiar">✕</button>
+      </div>
+      <a href="index.php?page=cliente_nuevo" class="btn btn-primary btn-sm">＋ Nuevo cliente</a>
+    </div>
   </div>
   <div class="table-wrap">
-    <table>
+    <table id="tabla-clientes">
       <thead>
         <tr>
           <th>Nombre</th>
@@ -24,8 +31,7 @@ require VIEW_PATH . '/layout/header.php';
       </thead>
       <tbody>
         <?php foreach ($clientes as $c): ?>
-        <tr>
-          <td class="font-bold"><?= htmlspecialchars($c['nombre']) ?></td>
+        <tr data-href="index.php?page=cliente_perfil&id=<?= $c['id'] ?>">
           <td class="text-sm hide-mobile"><?= htmlspecialchars($c['telefono'] ?: '—') ?></td>
           <td class="text-sm hide-mobile"><?= htmlspecialchars($c['email'] ?: '—') ?></td>
           <td class="hide-mobile"><?= (int)$c['total_pedidos'] ?></td>
@@ -59,3 +65,7 @@ require VIEW_PATH . '/layout/header.php';
 </div>
 
 <?php require VIEW_PATH . '/layout/footer.php'; ?>
+<script>
+initTableSearch('search-clientes', 'tabla-clientes');
+initRowLinks('tabla-clientes');
+</script>

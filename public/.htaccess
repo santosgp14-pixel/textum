@@ -1,6 +1,11 @@
 Options -Indexes
 DirectoryIndex index.php
 
+# Override parent: allow PHP files in public/ to be served directly
+<FilesMatch "\.php$">
+  Require all granted
+</FilesMatch>
+
 # Bloquear acceso a archivos sensibles
 <FilesMatch "\.(sql|md|txt|json|env)$">
   Require all denied

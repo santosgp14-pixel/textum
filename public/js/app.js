@@ -4,6 +4,225 @@
  */
 'use strict';
 
+// ═══════════════════════════════════════════════════════════════
+// MÓDULO: TOAST NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════════
+const Toast = (() => {
+  let container;
+  function getContainer() {
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'toast-container';
+      document.body.appendChild(container);
+    }
+    return container;
+  }
+  function show(msg, type = 'info', duration = 3500) {
+    const icons = { success: '✓', error: '✕', warn: '⚠', info: 'ℹ' };
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    el.innerHTML = `
+      <span class="toast-icon">${icons[type] || 'ℹ'}</span>
+      <span class="toast-msg">${msg}</span>
+      <button class="toast-close" aria-label="Cerrar">✕</button>`;
+    getContainer().appendChild(el);
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+    const dismiss = () => {
+      el.classList.add('hide');
+      el.classList.remove('show');
+      setTimeout(() => el.remove(), 350);
+    };
+    el.querySelector('.toast-close').addEventListener('click', dismiss);
+    if (duration > 0) setTimeout(dismiss, duration);
+    return { dismiss };
+  }
+  return {
+    success: (m, d) => show(m, 'success', d),
+    error:   (m, d) => show(m, 'error',   d),
+    warn:    (m, d) => show(m, 'warn',    d),
+    info:    (m, d) => show(m, 'info',    d),
+  };
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// MÓDULO: CONFIRM DIALOG (reemplaza confirm() nativo)
+// ═══════════════════════════════════════════════════════════════
+const Confirm = (() => {
+  let dialogEl, resolve;
+  function build() {
+    dialogEl = document.createElement('div');
+    dialogEl.id = 'confirm-dialog';
+    dialogEl.innerHTML = `
+      <div id="confirm-dialog-backdrop"></div>
+      <div class="confirm-box">
+        <div class="confirm-icon" id="confirm-icon"></div>
+        <div class="confirm-title" id="confirm-title"></div>
+        <div class="confirm-msg"  id="confirm-msg"></div>
+        <div class="confirm-btns">
+          <button id="confirm-cancel" class="btn btn-outline">Cancelar</button>
+          <button id="confirm-ok"     class="btn btn-danger" >Confirmar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(dialogEl);
+    dialogEl.querySelector('#confirm-cancel').addEventListener('click', () => close(false));
+    dialogEl.querySelector('#confirm-ok').addEventListener('click',     () => close(true));
+    dialogEl.querySelector('#confirm-dialog-backdrop').addEventListener('click', () => close(false));
+    document.addEventListener('keydown', e => {
+      if (dialogEl.classList.contains('show') && e.key === 'Escape') close(false);
+    });
+  }
+  function close(val) {
+    dialogEl.classList.remove('show');
+    if (resolve) { resolve(val); resolve = null; }
+  }
+  return function(opts = {}) {
+    if (!dialogEl) build();
+    const {
+      title   = '¿Estás seguro?',
+      message = 'Esta acción no se puede deshacer.',
+      icon    = '🗑',
+      okText  = 'Confirmar',
+      okClass = 'btn-danger',
+    } = typeof opts === 'string' ? { title: opts } : opts;
+    dialogEl.querySelector('#confirm-icon').textContent  = icon;
+    dialogEl.querySelector('#confirm-title').textContent = title;
+    dialogEl.querySelector('#confirm-msg').textContent   = message;
+    const okBtn = dialogEl.querySelector('#confirm-ok');
+    okBtn.textContent = okText;
+    okBtn.className   = `btn ${okClass}`;
+    dialogEl.classList.add('show');
+    okBtn.focus();
+    return new Promise(res => { resolve = res; });
+  };
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// MÓDULO: PROGRESS BAR (navegación)
+// ═══════════════════════════════════════════════════════════════
+const Progress = (() => {
+  let bar, timer, pct = 0;
+  function getBar() {
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'nprogress';
+      document.body.prepend(bar);
+    }
+    return bar;
+  }
+  function set(p) {
+    pct = Math.min(p, 95);
+    getBar().style.transform = `scaleX(${pct / 100})`;
+  }
+  return {
+    start() {
+      clearInterval(timer);
+      getBar().classList.add('running');
+      set(10);
+      timer = setInterval(() => { set(pct + (95 - pct) * 0.12); }, 200);
+    },
+    done() {
+      clearInterval(timer);
+      const b = getBar();
+      set(100); b.style.transform = 'scaleX(1)';
+      setTimeout(() => { b.classList.remove('running'); set(0); }, 400);
+    },
+  };
+})();
+
+// Start progress on every link click (except anchors, new tabs)
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[href]');
+  if (!a || a.target === '_blank' || a.href.startsWith('mailto:') ||
+      a.href === location.href || a.href.includes('#') ||
+      e.ctrlKey || e.metaKey || e.shiftKey) return;
+  Progress.start();
+});
+window.addEventListener('pageshow', () => Progress.done());
+
+// ═══════════════════════════════════════════════════════════════
+// MÓDULO: TABLE SEARCH
+// ═══════════════════════════════════════════════════════════════
+function initTableSearch(inputId, tableId) {
+  const input = document.getElementById(inputId);
+  const table = document.getElementById(tableId);
+  if (!input || !table) return;
+  const clearBtn = input.parentElement.querySelector('.search-clear');
+  const tbody = table.querySelector('tbody');
+  if (!tbody) return;
+
+  function filter() {
+    const q = input.value.trim().toLowerCase();
+    if (clearBtn) clearBtn.classList.toggle('visible', q.length > 0);
+    let visible = 0;
+    tbody.querySelectorAll('tr').forEach(tr => {
+      const match = !q || tr.textContent.toLowerCase().includes(q);
+      tr.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    // Show/hide empty state
+    let emptyEl = table.parentElement.querySelector('.table-search-empty');
+    if (!visible && q) {
+      if (!emptyEl) {
+        emptyEl = document.createElement('div');
+        emptyEl.className = 'empty-state table-search-empty';
+        emptyEl.style.padding = '32px';
+        emptyEl.innerHTML = `<div class="empty-state-icon">🔍</div><div class="empty-state-title">Sin resultados</div><div class="empty-state-text">Ningún registro coincide con "<strong>${q}</strong>"</div>`;
+        table.parentElement.appendChild(emptyEl);
+      }
+      emptyEl.querySelector('strong').textContent = q;
+      emptyEl.style.display = '';
+    } else if (emptyEl) {
+      emptyEl.style.display = 'none';
+    }
+  }
+  input.addEventListener('input', filter);
+  if (clearBtn) clearBtn.addEventListener('click', () => { input.value = ''; filter(); input.focus(); });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MÓDULO: CLICKABLE TABLE ROWS
+// ═══════════════════════════════════════════════════════════════
+function initRowLinks(tableId) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  table.querySelectorAll('tbody tr[data-href]').forEach(tr => {
+    tr.classList.add('row-link');
+    tr.addEventListener('click', e => {
+      if (e.target.closest('a, button, input, select')) return;
+      Progress.start();
+      window.location.href = tr.dataset.href;
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MÓDULO: KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  // Ignore when focus is on an input/textarea
+  if (e.target.matches('input, textarea, select, [contenteditable]')) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+  const shortcuts = {
+    'n': 'index.php?page=pedido_nuevo',
+    'p': 'index.php?page=pedidos',
+    'c': 'index.php?page=clientes',
+    's': 'index.php?page=stock',
+    'b': 'index.php?page=balance',
+    'r': 'index.php?page=reportes',
+    'd': 'index.php?page=dashboard',
+  };
+  if (shortcuts[e.key]) {
+    Progress.start();
+    window.location.href = shortcuts[e.key];
+  }
+  // '/' focuses search input
+  if (e.key === '/') {
+    const searchEl = document.querySelector('.table-search-input');
+    if (searchEl) { e.preventDefault(); searchEl.focus(); searchEl.select(); }
+  }
+});
+
 // ── PWA: Service Worker ─────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -28,10 +247,7 @@ if (btnMenu && sidebar) {
   });
 }
 
-// ── Flash auto-dismiss ──────────────────────────────────────────
-document.querySelectorAll('.alert[data-autodismiss]').forEach(el => {
-  setTimeout(() => el.remove(), 3500);
-});
+// ── Flash auto-dismiss — handled in footer inline script ───────
 
 // ── Formateo de pesos argentinos ────────────────────────────────
 function formatPesos(n) {
@@ -93,12 +309,69 @@ if (pedidoForm) {
       .catch(() => showBarcodeError('Error de conexión'));
   }
 
+  // ── Búsqueda por nombre ──────────────────────────────────────
+  const nombreInput   = document.getElementById('nombre-search-input');
+  const nombreResults = document.getElementById('nombre-search-results');
+  let nombreTimeout;
+  let nombreSearchData = []; // cache de resultados para evitar JSON en data-attr
+
+  function cerrarNombreDropdown() {
+    if (nombreResults) nombreResults.style.display = 'none';
+    nombreSearchData = [];
+  }
+
+  nombreInput?.addEventListener('input', () => {
+    clearTimeout(nombreTimeout);
+    const q = nombreInput.value.trim();
+    if (q.length < 2) { cerrarNombreDropdown(); return; }
+    nombreTimeout = setTimeout(() => {
+      fetch(`index.php?page=variantes_buscar&q=${encodeURIComponent(q)}`)
+        .then(r => r.json())
+        .then(data => {
+          if (!data.ok || !data.variantes.length) {
+            nombreSearchData = [];
+            nombreResults.innerHTML = '<div class="cliente-item text-muted" style="cursor:default;font-size:.875rem">Sin resultados</div>';
+          } else {
+            nombreSearchData = data.variantes;
+            nombreResults.innerHTML = nombreSearchData.map((v, i) => `
+              <div class="cliente-item" data-idx="${i}">
+                <div style="font-weight:600;font-size:.9rem">${v.tela_nombre}</div>
+                <div class="text-sm text-muted">${v.descripcion} &mdash; ${formatPesos(v.precio)}&thinsp;/&thinsp;${v.unidad}</div>
+                <div style="font-size:.75rem;color:var(--green-600)">Stock: ${formatQty(v.stock, v.unidad)}</div>
+              </div>`).join('');
+            nombreResults.querySelectorAll('.cliente-item[data-idx]').forEach(el => {
+              el.addEventListener('click', () => {
+                const v = nombreSearchData[parseInt(el.dataset.idx, 10)];
+                if (!v) return;
+                nombreInput.value = '';
+                cerrarNombreDropdown();
+                openAddItemModal(v);
+              });
+            });
+          }
+          nombreResults.style.display = '';
+        })
+        .catch(() => cerrarNombreDropdown());
+    }, 280);
+  });
+
+  nombreInput?.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { nombreInput.value = ''; cerrarNombreDropdown(); }
+  });
+
+  document.addEventListener('click', e => {
+    if (!nombreInput?.contains(e.target) && !nombreResults?.contains(e.target)) {
+      cerrarNombreDropdown();
+    }
+  });
+
   // ── Eliminar item ───────────────────────────────────────────────
-  itemsBody.addEventListener('click', e => {
+  itemsBody.addEventListener('click', async e => {
     const btn = e.target.closest('[data-del-item]');
     if (!btn) return;
     const itemId = btn.dataset.delItem;
-    if (!confirm('¿Eliminar este ítem?')) return;
+    const ok = await Confirm({ title: 'Eliminar ítem', message: 'Se quitará del pedido.', icon: '🗑', okText: 'Eliminar' });
+    if (!ok) return;
 
     const fd = new FormData();
     fd.append('pedido_id', pedidoId);
@@ -107,8 +380,9 @@ if (pedidoForm) {
     fetch('index.php?page=pedido_item_del', { method: 'POST', body: fd })
       .then(r => r.json())
       .then(data => {
-        if (!data.ok) { alert(data.msg); return; }
+        if (!data.ok) { Toast.error(data.msg); return; }
         renderItems(data.items, data.total);
+        Toast.success('Ítem eliminado.');
       });
   });
 
@@ -146,8 +420,15 @@ if (pedidoForm) {
   });
 
   // ── Confirmar pedido ────────────────────────────────────────
-  btnConfirmar?.addEventListener('click', () => {
-    if (!confirm('¿Confirmar pedido? Se descontará el stock.')) return;
+  btnConfirmar?.addEventListener('click', async () => {
+    const ok = await Confirm({
+      title: 'Confirmar pedido',
+      message: 'Se descontará el stock. Esta acción no se puede deshacer.',
+      icon: '✅',
+      okText: 'Confirmar',
+      okClass: 'btn-success',
+    });
+    if (!ok) return;
 
     btnConfirmar.disabled = true;
     btnConfirmar.innerHTML = '<span class="spinner"></span> Confirmando...';
@@ -159,7 +440,7 @@ if (pedidoForm) {
       .then(r => r.json())
       .then(data => {
         if (!data.ok) {
-          alert('Error: ' + data.msg);
+          Toast.error('Error: ' + data.msg);
           btnConfirmar.disabled = false;
           btnConfirmar.textContent = '✓ Confirmar Pedido';
           return;
@@ -167,7 +448,7 @@ if (pedidoForm) {
         window.location.href = data.redirect;
       })
       .catch(() => {
-        alert('Error de conexión.');
+        Toast.error('Error de conexión.');
         btnConfirmar.disabled = false;
         btnConfirmar.textContent = '✓ Confirmar Pedido';
       });
@@ -179,7 +460,7 @@ if (pedidoForm) {
       itemsBody.innerHTML = `
         <tr id="items-empty">
           <td colspan="6" class="text-center text-muted" style="padding:32px">
-            Sin productos. Escanee un código de barras para comenzar.
+            Sin productos. Escanee un código de barras o busque por nombre.
           </td>
         </tr>`;
       totalEl.textContent = formatPesos(0);
@@ -397,12 +678,12 @@ if (pedidoForm) {
     fetch('index.php?page=pedido_item_add', { method: 'POST', body: fd })
       .then(r => r.json())
       .then(data => {
-        if (!data.ok) { alert(data.msg); return; }
+        if (!data.ok) { Toast.error(data.msg); return; }
         renderItems(data.items, data.total);
         closeMaiModal();
         if (!('ontouchstart' in window)) barcodeInput.focus();
       })
-      .catch(() => alert('Error al agregar ítem.'))
+      .catch(() => Toast.error('Error al agregar ítem.'))
       .finally(() => {
         btnMaiAdd.disabled = false;
         btnMaiAdd.textContent = '＋ Agregar al pedido';
@@ -538,7 +819,7 @@ if (pedidoForm) {
       fetch('index.php?page=pedido_cliente_set', { method: 'POST', body: fd })
         .then(r => r.json())
         .then(data => {
-          if (!data.ok) { alert(data.msg); return; }
+          if (!data.ok) { Toast.error(data.msg); return; }
           cerrarBusquedaCliente();
           if (data.cliente) {
             clienteNombreDisplay.textContent = data.cliente.nombre;
@@ -549,7 +830,7 @@ if (pedidoForm) {
             clienteSinAsignar.style.display = '';
           }
         })
-        .catch(() => alert('Error al asignar cliente.'));
+          .catch(() => Toast.error('Error al asignar cliente.'));
     };
 
     document.getElementById('btn-asignar-cliente')?.addEventListener('click', abrirBusquedaCliente);
@@ -602,9 +883,7 @@ if (btnAnular) {
 
   btnConfAn?.addEventListener('click', () => {
     const motivo = motivoEl.value.trim();
-    if (!motivo) { alert('Ingrese el motivo de anulación.'); return; }
-
-    btnConfAn.disabled = true;
+    if (!motivo) { Toast.warn('Ingresá el motivo de anulación.'); return; }
     btnConfAn.innerHTML = '<span class="spinner"></span> Anulando...';
 
     const fd = new FormData();
@@ -615,7 +894,7 @@ if (btnAnular) {
       .then(r => r.json())
       .then(data => {
         if (!data.ok) {
-          alert('Error: ' + data.msg);
+          Toast.error('Error: ' + data.msg);
           btnConfAn.disabled = false;
           btnConfAn.textContent = 'Confirmar Anulación';
           return;

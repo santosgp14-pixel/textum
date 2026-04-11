@@ -40,8 +40,9 @@ define('SESSION_NAME',     'textum_sess');
 define('SESSION_LIFETIME', 28800); // 8 horas
 
 // ── Seguridad ──────────────────────────────────────────────────
-define('BCRYPT_COST', 10);
-
+define('BCRYPT_COST', 10);// Clave secreta para tokens HMAC (catálogo público y recibos)
+// En producción: setear la variable de entorno APP_SECRET con un valor aleatorio de 32+ chars
+define('APP_SECRET', env('APP_SECRET', 'textum-dev-secret-changeme-in-prod'));
 // ── Rutas internas ─────────────────────────────────────────────
 define('ROOT_PATH',   dirname(__DIR__));
 define('SRC_PATH',    ROOT_PATH . '/src');

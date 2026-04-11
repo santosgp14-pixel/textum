@@ -86,7 +86,7 @@ require VIEW_PATH . '/layout/header.php';
               <a href="index.php?page=rollo_editar&id=<?= $r['id'] ?>" class="btn btn-sm btn-outline">Editar</a>
               <?php if (Auth::isAdmin()): ?>
               <form method="POST" action="index.php?page=rollo_eliminar"
-                    onsubmit="return confirm('¿Eliminar rollo <?= htmlspecialchars($r['nro_rollo'] ?: '#'.$r['id']) ?>? Se descontarán <?= number_format($r['metros'],3,',','.') ?> <?= $variante['unidad'] ?> del stock.')">
+                    data-confirm="¿Eliminar rollo <?= htmlspecialchars($r['nro_rollo'] ?: '#'.$r['id']) ?>? Se descontarán <?= number_format($r['metros'],3,',','.') ?> <?= $variante['unidad'] ?> del stock.">
                 <input type="hidden" name="id" value="<?= $r['id'] ?>">
                 <input type="hidden" name="variante_id" value="<?= $variante['id'] ?>">
                 <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
@@ -122,3 +122,12 @@ require VIEW_PATH . '/layout/header.php';
 </div>
 
 <?php require VIEW_PATH . '/layout/footer.php'; ?>
+<script>
+document.querySelectorAll('form[data-confirm]').forEach(form => {
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const ok = await Confirm({ title: form.dataset.confirm, icon: '🗑', okText: 'Eliminar' });
+    if (ok) form.submit();
+  });
+});
+</script>

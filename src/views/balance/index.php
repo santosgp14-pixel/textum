@@ -81,13 +81,54 @@ $netoClass = $neto >= 0 ? 'neto-pos' : 'neto-neg';
       <?php endif; ?>
     </div>
     <div class="card-body" style="padding-bottom:8px">
-      <!-- Formulario nuevo gasto -->
-      <form method="POST" action="index.php?page=gasto_guardar" class="flex gap-2 flex-wrap" style="margin-bottom:16px">
+      <!-- Formulario nuevo gasto (con soporte recurrente) -->
+      <form method="POST" action="index.php?page=gasto_guardar" id="form-gasto" style="margin-bottom:16px">
         <input type="hidden" name="fecha" value="<?= htmlspecialchars($fecha) ?>">
-        <input type="text" name="descripcion" class="form-control" placeholder="Ej: Fletes, insumos…" required style="flex:1;min-width:140px">
-        <input type="number" name="monto" class="form-control" placeholder="$ Monto" step="0.01" min="0.01" required style="width:110px">
-        <button type="submit" class="btn btn-primary btn-sm">＋ Registrar</button>
+        <div class="flex gap-2 flex-wrap" style="margin-bottom:8px">
+          <input type="text" name="descripcion" class="form-control" placeholder="Ej: Fletes, insumos…" required style="flex:1;min-width:140px">
+          <input type="number" name="monto" class="form-control" placeholder="$ Monto" step="0.01" min="0.01" required style="width:110px">
+          <button type="submit" class="btn btn-primary btn-sm">＋ Registrar</button>
+        </div>
+        <div style="margin-bottom:8px">
+          <label class="flex items-center gap-2" style="cursor:pointer;font-size:.85rem">
+            <input type="checkbox" name="es_recurrente" value="1" id="chk-recurrente">
+            Gasto recurrente (se repetirá cada mes)
+          </label>
+        </div>
+        <div id="recurrente-fields" style="display:none;padding:10px;background:var(--gray-50);border-radius:8px;margin-bottom:8px">
+          <div class="flex gap-3 flex-wrap items-center" style="font-size:.85rem">
+            <label class="flex items-center gap-1">
+              Frecuencia:
+              <select name="frecuencia" class="form-control" style="width:auto;padding:4px 8px">
+                <option value="mensual">Mensual</option>
+                <option value="semanal">Semanal</option>
+                <option value="diario">Diario</option>
+              </select>
+            </label>
+            <label class="flex items-center gap-1" id="wrap-dia">
+              Día del mes:
+              <input type="number" name="dia_cobro" class="form-control" value="<?= (int)date('j') ?>"
+                     min="1" max="31" style="width:70px;padding:4px 8px">
+            </label>
+          </div>
+        </div>
       </form>
+
+      <?php if (!empty($gastos_recurrentes_pendientes)): ?>
+      <!-- Alerta: gastos recurrentes pendientes de aplicar hoy -->
+      <div class="alert alert-ok" style="margin-bottom:12px;font-size:.85rem">
+        <strong>⏰ Gastos recurrentes pendientes hoy:</strong>
+        <form method="POST" action="index.php?page=gasto_aplicar_recurrentes" style="margin-top:6px">
+          <?php foreach ($gastos_recurrentes_pendientes as $gr): ?>
+            <label class="flex items-center gap-2" style="cursor:pointer;margin-bottom:4px">
+              <input type="checkbox" name="ids[]" value="<?= $gr['id'] ?>" checked>
+              <?= htmlspecialchars($gr['descripcion']) ?> — $ <?= number_format($gr['monto'], 2, ',', '.') ?>
+            </label>
+          <?php endforeach; ?>
+          <button type="submit" class="btn btn-sm btn-primary" style="margin-top:6px">Aplicar seleccionados</button>
+        </form>
+      </div>
+      <?php endif; ?>
 
       <?php if (!empty($gastos_lista)): ?>
       <div class="table-wrap">
@@ -112,3 +153,20 @@ $netoClass = $neto >= 0 ? 'neto-pos' : 'neto-neg';
 </div>
 
 <?php require VIEW_PATH . '/layout/footer.php'; ?>
+<script>
+(function() {
+  var chk = document.getElementById('chk-recurrente');
+  var fields = document.getElementById('recurrente-fields');
+  var selFrecuencia = document.querySelector('[name="frecuencia"]');
+  var wrapDia = document.getElementById('wrap-dia');
+  if (!chk) return;
+  chk.addEventListener('change', function() {
+    fields.style.display = this.checked ? 'block' : 'none';
+  });
+  if (selFrecuencia) {
+    selFrecuencia.addEventListener('change', function() {
+      wrapDia.style.display = this.value === 'mensual' ? 'flex' : 'none';
+    });
+  }
+})();
+</script>

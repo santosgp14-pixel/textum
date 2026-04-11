@@ -4,14 +4,19 @@ $currentPage = 'pedidos';
 require VIEW_PATH . '/layout/header.php';
 ?>
 
-<div style="margin-bottom:12px" class="flex items-center gap-3 flex-wrap">
-  <a href="index.php?page=pedidos" class="btn btn-outline btn-sm">← Pedidos</a>
-  <span class="badge badge-abierto">Abierto</span>
-  <span class="text-sm text-muted">Vendedor: <?= htmlspecialchars($pedido['vendedor_nombre']) ?></span>
-  <span class="text-sm text-muted"><?= date('d/m/Y H:i', strtotime($pedido['created_at'])) ?></span>
+<!-- Page header -->
+<div class="page-header" style="margin-bottom:20px">
+  <div class="flex items-center gap-3 flex-wrap">
+    <a href="index.php?page=pedidos" class="btn btn-outline btn-sm">← Pedidos</a>
+    <div>
+      <div class="page-header-title" style="font-size:1.1rem">Pedido #<?= $pedido['id'] ?></div>
+      <div class="page-header-sub"><?= date('d/m H:i', strtotime($pedido['created_at'])) ?> &mdash; <?= htmlspecialchars($pedido['vendedor_nombre']) ?></div>
+    </div>
+    <span class="badge badge-abierto">Abierto</span>
+  </div>
 </div>
 
-<!-- Form wrapper (data attribute para JS) -->
+<!-- Form wrapper -->
 <div id="pedido-abierto-form" data-pedido-id="<?= $pedido['id'] ?>">
 
   <!-- Cliente del pedido -->
@@ -75,17 +80,21 @@ require VIEW_PATH . '/layout/header.php';
 
       <!-- Zona escaneo -->
       <div class="barcode-zone mb-4">
-        <h3>📦 Escanear código de barras</h3>
-        <p class="text-sm text-muted mb-4" style="margin-bottom:12px">
-          Posicione el cursor aquí y escanee, o escriba el código manualmente.
-        </p>
+        <h3 style="font-size:.875rem;font-weight:700;color:var(--blue-800);margin-bottom:4px">Agregar por código o nombre</h3>
+        <p class="text-sm text-muted" style="margin-bottom:12px">Escanee un código de barras o busque el artículo por nombre.</p>
         <div class="barcode-inputs flex gap-3 items-center flex-wrap" style="justify-content:center">
           <input type="text" id="barcode-input" class="form-control barcode-input"
-                 placeholder="Código de barras… escanear o escribir" autocomplete="off"
-                 style="max-width:320px">
+                 placeholder="Código de barras…" autocomplete="off"
+                 style="max-width:280px">
           <button type="button" id="btn-camara" class="btn btn-outline" title="Escanear con cámara">
             📷 Cámara
           </button>
+        </div>
+        <div style="position:relative;max-width:320px;margin:10px auto 0">
+          <input type="text" id="nombre-search-input" class="form-control"
+                 placeholder="Buscar por nombre del artículo…" autocomplete="off">
+          <div id="nombre-search-results" class="cliente-dropdown"
+               style="display:none;position:absolute;z-index:200;width:100%;top:100%;left:0"></div>
         </div>
       </div>
 
@@ -149,26 +158,26 @@ require VIEW_PATH . '/layout/header.php';
     <!-- DERECHA: Total y confirmación -->
     <div>
       <div class="order-total-bar">
-        <div class="total-label">TOTAL DEL PEDIDO</div>
-        <div class="total-value" id="order-total">
+        <div class="total-label" style="font-size:.68rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.6">Total del pedido</div>
+        <div class="total-value" id="order-total" style="letter-spacing:-.03em">
           $ <?= number_format($pedido['total'], 2, ',', '.') ?>
         </div>
-        <div style="margin-top:8px;font-size:.82rem;opacity:.6">
-          <?= count($items) ?> líneas
+        <div style="margin-top:6px;font-size:.78rem;opacity:.5" id="items-count-label">
+          <?= count($items) ?> línea<?= count($items) != 1 ? 's' : '' ?>
         </div>
       </div>
 
-      <div style="margin-top:16px">
+      <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px">
         <button id="btn-confirmar"
                 class="btn btn-success btn-lg w-full"
                 <?= empty($items) ? 'disabled' : '' ?>>
-          ✓ Confirmar Pedido
+          Confirmar pedido
         </button>
-        <div class="alert alert-warn" style="margin-top:12px;font-size:.82rem">
-          Al confirmar, se descontará el stock y se registrará el ingreso. Esta acción no se puede deshacer directamente.
-        </div>
+        <p class="text-xs text-muted text-center" style="line-height:1.5;padding:0 4px">
+          El stock se descontará y el ingreso quedará registrado.
+        </p>
         <a href="index.php?page=pedidos"
-           class="btn btn-outline w-full mt-4"
+           class="btn btn-outline w-full"
            onclick="return confirm('¿Salir? El pedido quedará abierto.')">
           Guardar y salir
         </a>

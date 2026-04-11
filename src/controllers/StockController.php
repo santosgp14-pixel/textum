@@ -742,4 +742,205 @@ class StockController {
         require VIEW_PATH . '/errors/404.php';
         exit;
     }
+
+    // ──────────────────────────────────────────────────────────
+    // IMPORTACIÓN MASIVA CSV
+    // ──────────────────────────────────────────────────────────
+
+    public function importarCSVForm(): void {
+        Auth::require();
+        $resultado = null;
+        require VIEW_PATH . '/stock/importar_csv.php';
+    }
+
+    public function importarCSV(): void {
+        Auth::require();
+        $eid            = Auth::empresaId();
+        $updateExisting = !empty($_POST['update_existing']);
+
+        // Validar upload
+        $file = $_FILES['csv_file'] ?? null;
+        if (!$file || $file['error'] !== UPLOAD_ERR_OK) {
+            $this->flashError('Error al subir el archivo.');
+            header('Location: ' . BASE_URL . '/index.php?page=stock_importar_csv');
+            exit;
+        }
+        if ($file['size'] > 2 * 1024 * 1024) {
+            $this->flashError('El archivo supera 2 MB.');
+            header('Location: ' . BASE_URL . '/index.php?page=stock_importar_csv');
+            exit;
+        }
+        // Verificar extensión y MIME
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mime  = $finfo->file($file['tmp_name']);
+        $ext   = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if ($ext !== 'csv' || !in_array($mime, ['text/csv', 'text/plain', 'application/csv', 'application/octet-stream'], true)) {
+            $this->flashError('Solo se aceptan archivos CSV.');
+            header('Location: ' . BASE_URL . '/index.php?page=stock_importar_csv');
+            exit;
+        }
+
+        $handle = fopen($file['tmp_name'], 'r');
+        if (!$handle) {
+            $this->flashError('No se pudo leer el archivo.');
+            header('Location: ' . BASE_URL . '/index.php?page=stock_importar_csv');
+            exit;
+        }
+
+        // Leer cabecera
+        $header = fgetcsv($handle);
+        if (!$header) {
+            fclose($handle);
+            $this->flashError('El archivo CSV está vacío o tiene formato incorrecto.');
+            header('Location: ' . BASE_URL . '/index.php?page=stock_importar_csv');
+            exit;
+        }
+
+        // Normalizar nombres de columna (minúsculas, sin espacios)
+        $colMap = [];
+        foreach ($header as $i => $col) {
+            $colMap[trim(strtolower($col))] = $i;
+        }
+
+        $required = ['nombre_tela', 'precio'];
+        foreach ($required as $col) {
+            if (!isset($colMap[$col])) {
+                fclose($handle);
+                $this->flashError("El CSV no tiene la columna requerida: $col");
+                header('Location: ' . BASE_URL . '/index.php?page=stock_importar_csv');
+                exit;
+            }
+        }
+
+        // Cache de telas y categorías ya creadas en esta sesión de importación
+        $telasCache = [];
+        $catCache   = [];
+
+        $filas = [];
+        $ok = $errores = $duplicados = 0;
+        $rowNum = 1;
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $rowNum++;
+            // Ignorar filas vacías
+            if (empty(array_filter($row))) continue;
+
+            // Extraer campos con defaults
+            $get = function(string $col) use ($row, $colMap): string {
+                return isset($colMap[$col]) && isset($row[$colMap[$col]])
+                    ? trim((string)$row[$colMap[$col]])
+                    : '';
+            };
+
+            $nombreTela = $get('nombre_tela');
+            $categoria  = $get('categoria');
+            $descVar    = $get('descripcion_variante');
+            $precioRaw  = $get('precio');
+            $unidad     = $get('unidad');
+            $stockRaw   = $get('stock');
+            $costoRaw   = $get('costo');
+
+            if (empty($nombreTela) || !is_numeric($precioRaw)) {
+                $filas[] = ['row' => $rowNum, 'tela' => $nombreTela ?: '(vacío)', 'variante' => $descVar, 'status' => 'error', 'msg' => 'Nombre o precio inválido'];
+                $errores++;
+                continue;
+            }
+
+            $precio = (float)$precioRaw;
+            $stock  = is_numeric($stockRaw) ? (float)$stockRaw : 0;
+            $costo  = is_numeric($costoRaw) ? (float)$costoRaw : 0;
+            $unidad = in_array($unidad, ['metro','kilo','rollo']) ? $unidad : 'metro';
+
+            // Resolver categoría
+            $catId = null;
+            if (!empty($categoria)) {
+                $catKey = strtolower($categoria);
+                if (isset($catCache[$catKey])) {
+                    $catId = $catCache[$catKey];
+                } else {
+                    $stmt = $this->db->prepare(
+                        "SELECT id FROM categorias WHERE empresa_id=? AND LOWER(nombre)=?"
+                    );
+                    $stmt->execute([$eid, $catKey]);
+                    $catRow = $stmt->fetch();
+                    if ($catRow) {
+                        $catId = (int)$catRow['id'];
+                    } else {
+                        $this->db->prepare(
+                            "INSERT INTO categorias (empresa_id, nombre, orden, activa) VALUES (?,?,0,1)"
+                        )->execute([$eid, $categoria]);
+                        $catId = (int)$this->db->lastInsertId();
+                    }
+                    $catCache[$catKey] = $catId;
+                }
+            }
+
+            // Resolver tela
+            $telaKey = strtolower($nombreTela);
+            if (isset($telasCache[$telaKey])) {
+                $telaId = $telasCache[$telaKey];
+            } else {
+                $stmt = $this->db->prepare(
+                    "SELECT id FROM telas WHERE empresa_id=? AND LOWER(nombre)=? AND activa=1"
+                );
+                $stmt->execute([$eid, $telaKey]);
+                $telaRow = $stmt->fetch();
+                if ($telaRow) {
+                    $telaId = (int)$telaRow['id'];
+                } else {
+                    $this->db->prepare(
+                        "INSERT INTO telas (empresa_id, nombre, categoria_id, activa) VALUES (?,?,?,1)"
+                    )->execute([$eid, $nombreTela, $catId]);
+                    $telaId = (int)$this->db->lastInsertId();
+                }
+                $telasCache[$telaKey] = $telaId;
+            }
+
+            // Resolver variante (upsert)
+            $stmt = $this->db->prepare(
+                "SELECT id FROM variantes WHERE tela_id=? AND empresa_id=? AND LOWER(descripcion)=?"
+            );
+            $stmt->execute([$telaId, $eid, strtolower($descVar ?: 'default')]);
+            $varRow = $stmt->fetch();
+
+            if ($varRow) {
+                if ($updateExisting) {
+                    $this->db->prepare(
+                        "UPDATE variantes SET precio=?, costo=?, stock=? WHERE id=?"
+                    )->execute([$precio, $costo, $stock, $varRow['id']]);
+                    $filas[] = ['row' => $rowNum, 'tela' => $nombreTela, 'variante' => $descVar, 'status' => 'updated'];
+                    $ok++;
+                } else {
+                    $filas[] = ['row' => $rowNum, 'tela' => $nombreTela, 'variante' => $descVar, 'status' => 'duplicado'];
+                    $duplicados++;
+                }
+            } else {
+                $this->db->prepare(
+                    "INSERT INTO variantes (tela_id, empresa_id, descripcion, precio, costo, unidad, stock, minimo_venta, activa)
+                     VALUES (?,?,?,?,?,?,?,1,1)"
+                )->execute([$telaId, $eid, $descVar ?: 'default', $precio, $costo, $unidad, $stock]);
+                $filas[] = ['row' => $rowNum, 'tela' => $nombreTela, 'variante' => $descVar, 'status' => 'ok'];
+                $ok++;
+            }
+        }
+
+        fclose($handle);
+
+        $resultado = compact('ok', 'errores', 'duplicados', 'filas');
+        require VIEW_PATH . '/stock/importar_csv.php';
+    }
+
+    public function csvTemplate(): void {
+        Auth::require();
+        $filename = 'template_telas.csv';
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        $out = fopen('php://output', 'w');
+        fputcsv($out, ['nombre_tela','categoria','descripcion_variante','precio','unidad','stock','costo']);
+        fputcsv($out, ['Algodón Jersey','Algodones','Blanco 150cm',2500,'metro',50,1500]);
+        fputcsv($out, ['Algodón Jersey','Algodones','Negro 150cm',2500,'metro',30,1500]);
+        fputcsv($out, ['Lana Frisé','Lanas','Azul 140cm',4800,'metro',0,3000]);
+        fclose($out);
+        exit;
+    }
 }

@@ -75,6 +75,7 @@ $router->add('POST', 'pedido_anular',      fn() => (new PedidosController())->an
 $router->add('GET',  'pedido_detalle',     fn() => (new PedidosController())->detalle());
 $router->add('POST', 'pedido_cliente_set', fn() => (new PedidosController())->setCliente());
 $router->add('GET',  'pedido_catalogo',    fn() => (new PedidosController())->catalogoVariantes());
+$router->add('GET',  'variantes_buscar',   fn() => (new PedidosController())->buscarVariantes());
 
 // Clientes
 $router->add('GET',  'clientes',        fn() => (new ClientesController())->index());
@@ -85,8 +86,34 @@ $router->add('GET',  'cliente_perfil',  fn() => (new ClientesController())->perf
 $router->add('GET',  'clientes_buscar', fn() => (new ClientesController())->buscar());
 
 // Balance
-$router->add('GET',  'balance',        fn() => (new BalanceController())->index());
-$router->add('POST', 'gasto_guardar',  fn() => (new BalanceController())->guardarGasto());
+$router->add('GET',  'balance',                   fn() => (new BalanceController())->index());
+$router->add('POST', 'gasto_guardar',              fn() => (new BalanceController())->guardarGasto());
+$router->add('POST', 'gasto_aplicar_recurrentes',  fn() => (new BalanceController())->aplicarRecurrentes());
+
+// Reportes
+$router->add('GET',  'reportes',                   fn() => (new ReportesController())->index());
+
+// Proveedores
+$router->add('GET',  'proveedores',                fn() => (new ProveedoresController())->index());
+$router->add('GET',  'proveedor_nuevo',            fn() => (new ProveedoresController())->nuevo());
+$router->add('GET',  'proveedor_editar',           fn() => (new ProveedoresController())->editar());
+$router->add('POST', 'proveedor_guardar',          fn() => (new ProveedoresController())->guardar());
+$router->add('POST', 'proveedor_eliminar',         fn() => (new ProveedoresController())->eliminar());
+
+// Configuración de empresa
+$router->add('GET',  'config',                     fn() => (new ConfigController())->index());
+$router->add('POST', 'config_guardar',             fn() => (new ConfigController())->guardar());
+
+// Catálogo público (sin autenticación)
+$router->add('GET',  'catalogo',                   fn() => (new CatalogoController())->index());
+
+// Recibo público (sin autenticación)
+$router->add('GET',  'recibo_pub',                 fn() => (new PedidosController())->reciboPub());
+
+// Importación CSV de stock
+$router->add('GET',  'stock_importar_csv',         fn() => (new StockController())->importarCSVForm());
+$router->add('POST', 'stock_importar_csv',         fn() => (new StockController())->importarCSV());
+$router->add('GET',  'stock_csv_template',         fn() => (new StockController())->csvTemplate());
 
 // Ruta raíz → dashboard o login
 if (!isset($_GET['page'])) {
