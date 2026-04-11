@@ -80,21 +80,20 @@ require VIEW_PATH . '/layout/header.php';
 
       <!-- Zona escaneo -->
       <div class="barcode-zone mb-4">
-        <h3 style="font-size:.875rem;font-weight:700;color:var(--blue-800);margin-bottom:4px">Agregar por código o nombre</h3>
-        <p class="text-sm text-muted" style="margin-bottom:12px">Escanee un código de barras o busque el artículo por nombre.</p>
-        <div class="barcode-inputs flex gap-3 items-center flex-wrap" style="justify-content:center">
-          <input type="text" id="barcode-input" class="form-control barcode-input"
-                 placeholder="Código de barras…" autocomplete="off"
-                 style="max-width:280px">
-          <button type="button" id="btn-camara" class="btn btn-outline" title="Escanear con cámara">
-            📷 Cámara
-          </button>
-        </div>
-        <div style="position:relative;max-width:320px;margin:10px auto 0">
-          <input type="text" id="nombre-search-input" class="form-control"
-                 placeholder="Buscar por nombre del artículo…" autocomplete="off">
-          <div id="nombre-search-results" class="cliente-dropdown"
-               style="display:none;position:absolute;z-index:200;width:100%;top:100%;left:0"></div>
+        <h3 style="font-size:.875rem;font-weight:700;color:var(--blue-800);margin-bottom:4px">Agregar artículo</h3>
+        <p class="text-sm text-muted" style="margin-bottom:12px">Escriba el nombre o escanee / ingrese el código de barras.</p>
+        <div style="max-width:400px;margin:0 auto">
+          <div class="flex gap-2 items-center">
+            <div style="position:relative;flex:1;min-width:0">
+              <input type="text" id="barcode-input" class="form-control barcode-input"
+                     placeholder="Nombre o código de barras…" autocomplete="off">
+              <div id="nombre-search-results" class="cliente-dropdown"
+                   style="display:none;position:absolute;z-index:200;width:100%;top:calc(100% + 4px);left:0"></div>
+            </div>
+            <button type="button" id="btn-camara" class="btn btn-outline" style="flex-shrink:0" title="Escanear con cámara">
+              📷 Cámara
+            </button>
+          </div>
         </div>
       </div>
 

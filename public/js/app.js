@@ -273,95 +273,119 @@ if (pedidoForm) {
 
   let varianteActual = null; // variante seleccionada por barcode
 
-  // ── Búsqueda por código de barras ──────────────────────────
-  let scanTimeout;
+  // ── Búsqueda unificada: nombre o código de barras ───────────
+  const nombreResults  = document.getElementById('nombre-search-results');
+  let unifiedTimeout;
+  let nombreSearchData = [];
+  let lastInputLen = 0, lastInputAt = 0;
+
+  // Resetear contadores al enfocar para detectar bien el primer escaneo
+  barcodeInput.addEventListener('focus', () => {
+    lastInputLen = barcodeInput.value.length;
+    lastInputAt  = Date.now();
+  });
+
+  function cerrarDropdown() {
+    if (nombreResults) nombreResults.style.display = 'none';
+    nombreSearchData = [];
+  }
+
+  function buscarBarcode(code) {
+    cerrarDropdown();
+    fetch(`index.php?page=barcode_buscar&barcode=${encodeURIComponent(code)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.ok) { showBarcodeError(data.msg); return; }
+        varianteActual = data.variante;
+        clearBarcodeError();
+        openAddItemModal(varianteActual, data.rollo || null);
+      })
+      .catch(() => showBarcodeError('Error de conexión'));
+  }
+
+  function buscarPorNombre(q) {
+    fetch(`index.php?page=variantes_buscar&q=${encodeURIComponent(q)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.ok || !data.variantes.length) {
+          nombreSearchData = [];
+          nombreResults.innerHTML = '<div class="cliente-item text-muted" style="cursor:default;font-size:.875rem;padding:12px 14px">Sin resultados</div>';
+        } else {
+          nombreSearchData = data.variantes;
+          nombreResults.innerHTML = nombreSearchData.map((v, i) => `
+            <div class="cliente-item" data-idx="${i}">
+              <div style="font-weight:600;font-size:.9rem">${v.tela_nombre}</div>
+              <div class="text-sm text-muted">${v.descripcion} &mdash; ${formatPesos(v.precio)}&thinsp;/&thinsp;${v.unidad}</div>
+              <div style="font-size:.75rem;color:var(--green-600)">Stock: ${formatQty(v.stock, v.unidad)}</div>
+            </div>`).join('');
+          nombreResults.querySelectorAll('.cliente-item[data-idx]').forEach(el => {
+            el.addEventListener('click', () => {
+              const v = nombreSearchData[parseInt(el.dataset.idx, 10)];
+              if (!v) return;
+              barcodeInput.value = '';
+              cerrarDropdown();
+              clearBarcodeError();
+              openAddItemModal(v);
+            });
+          });
+        }
+        nombreResults.style.display = '';
+      })
+      .catch(() => cerrarDropdown());
+  }
+
   barcodeInput.addEventListener('input', () => {
-    clearTimeout(scanTimeout);
-    // Esperar 300ms después del último caracter (simula scanner)
-    scanTimeout = setTimeout(() => {
-      const code = barcodeInput.value.trim();
-      if (code.length < 3) return;
-      buscarBarcode(code);
-    }, 300);
+    clearTimeout(unifiedTimeout);
+    const val   = barcodeInput.value.trim();
+    const now   = Date.now();
+    const dLen  = val.length - lastInputLen;
+    const dTime = now - lastInputAt;
+    lastInputLen = val.length;
+    lastInputAt  = now;
+
+    if (!val) { cerrarDropdown(); clearBarcodeError(); return; }
+
+    // Scanner: 4+ caracteres en < 80 ms → tratar como código de barras
+    if (dLen > 3 && dTime < 80) {
+      cerrarDropdown();
+      unifiedTimeout = setTimeout(() => buscarBarcode(barcodeInput.value.trim()), 150);
+    } else {
+      // Tipeo manual → búsqueda por nombre
+      clearBarcodeError();
+      if (val.length < 2) { cerrarDropdown(); return; }
+      unifiedTimeout = setTimeout(() => buscarPorNombre(val), 350);
+    }
   });
 
   barcodeInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      const code = barcodeInput.value.trim();
-      if (code) buscarBarcode(code);
+      clearTimeout(unifiedTimeout);
+      const val = barcodeInput.value.trim();
+      if (!val) return;
+      // Dropdown visible con resultados → elegir el primero
+      const firstItem = nombreResults?.querySelector('.cliente-item[data-idx]');
+      if (nombreResults?.style.display !== 'none' && firstItem) {
+        firstItem.click();
+        return;
+      }
+      // Sin dropdown → intentar como código de barras
+      buscarBarcode(val);
+    }
+    if (e.key === 'Escape') {
+      barcodeInput.value = '';
+      cerrarDropdown();
+      clearBarcodeError();
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      nombreResults?.querySelector('.cliente-item[data-idx]')?.focus();
     }
   });
 
-  function buscarBarcode(code) {
-    fetch(`index.php?page=barcode_buscar&barcode=${encodeURIComponent(code)}`)
-      .then(r => r.json())
-      .then(data => {
-        if (!data.ok) {
-          showBarcodeError(data.msg);
-          return;
-        }
-        varianteActual = data.variante;
-        const rollo = data.rollo || null;
-        clearBarcodeError();
-        openAddItemModal(varianteActual, rollo);
-      })
-      .catch(() => showBarcodeError('Error de conexión'));
-  }
-
-  // ── Búsqueda por nombre ──────────────────────────────────────
-  const nombreInput   = document.getElementById('nombre-search-input');
-  const nombreResults = document.getElementById('nombre-search-results');
-  let nombreTimeout;
-  let nombreSearchData = []; // cache de resultados para evitar JSON en data-attr
-
-  function cerrarNombreDropdown() {
-    if (nombreResults) nombreResults.style.display = 'none';
-    nombreSearchData = [];
-  }
-
-  nombreInput?.addEventListener('input', () => {
-    clearTimeout(nombreTimeout);
-    const q = nombreInput.value.trim();
-    if (q.length < 2) { cerrarNombreDropdown(); return; }
-    nombreTimeout = setTimeout(() => {
-      fetch(`index.php?page=variantes_buscar&q=${encodeURIComponent(q)}`)
-        .then(r => r.json())
-        .then(data => {
-          if (!data.ok || !data.variantes.length) {
-            nombreSearchData = [];
-            nombreResults.innerHTML = '<div class="cliente-item text-muted" style="cursor:default;font-size:.875rem">Sin resultados</div>';
-          } else {
-            nombreSearchData = data.variantes;
-            nombreResults.innerHTML = nombreSearchData.map((v, i) => `
-              <div class="cliente-item" data-idx="${i}">
-                <div style="font-weight:600;font-size:.9rem">${v.tela_nombre}</div>
-                <div class="text-sm text-muted">${v.descripcion} &mdash; ${formatPesos(v.precio)}&thinsp;/&thinsp;${v.unidad}</div>
-                <div style="font-size:.75rem;color:var(--green-600)">Stock: ${formatQty(v.stock, v.unidad)}</div>
-              </div>`).join('');
-            nombreResults.querySelectorAll('.cliente-item[data-idx]').forEach(el => {
-              el.addEventListener('click', () => {
-                const v = nombreSearchData[parseInt(el.dataset.idx, 10)];
-                if (!v) return;
-                nombreInput.value = '';
-                cerrarNombreDropdown();
-                openAddItemModal(v);
-              });
-            });
-          }
-          nombreResults.style.display = '';
-        })
-        .catch(() => cerrarNombreDropdown());
-    }, 280);
-  });
-
-  nombreInput?.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { nombreInput.value = ''; cerrarNombreDropdown(); }
-  });
-
   document.addEventListener('click', e => {
-    if (!nombreInput?.contains(e.target) && !nombreResults?.contains(e.target)) {
-      cerrarNombreDropdown();
+    if (!barcodeInput.contains(e.target) && !nombreResults?.contains(e.target)) {
+      cerrarDropdown();
     }
   });
 
@@ -614,6 +638,7 @@ if (pedidoForm) {
     modalAI?.classList.remove('show');
     mAIvar = null; varianteActual = null;
     barcodeInput.value = '';
+    cerrarDropdown();
     clearBarcodeError();
   }
 
