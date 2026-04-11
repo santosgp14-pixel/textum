@@ -17,8 +17,9 @@ class AuthController {
     }
 
     public function loginPost(): void {
-        $email    = trim($_POST['email']    ?? '');
-        $password = trim($_POST['password'] ?? '');
+        $email      = trim($_POST['email']    ?? '');
+        $password   = trim($_POST['password'] ?? '');
+        $rememberMe = !empty($_POST['remember_me']);
 
         if ($email === '' || $password === '') {
             $_SESSION['login_error'] = 'Completá tu email y contraseña.';
@@ -28,6 +29,9 @@ class AuthController {
         }
 
         if (Auth::login($email, $password)) {
+            if ($rememberMe) {
+                Auth::setRememberCookie(Auth::userId());
+            }
             header('Location: ' . BASE_URL . '/index.php?page=dashboard');
             exit;
         }

@@ -196,32 +196,7 @@ function initRowLinks(tableId) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MÓDULO: KEYBOARD SHORTCUTS
-// ═══════════════════════════════════════════════════════════════
-document.addEventListener('keydown', e => {
-  // Ignore when focus is on an input/textarea
-  if (e.target.matches('input, textarea, select, [contenteditable]')) return;
-  if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-  const shortcuts = {
-    'n': 'index.php?page=pedido_nuevo',
-    'p': 'index.php?page=pedidos',
-    'c': 'index.php?page=clientes',
-    's': 'index.php?page=stock',
-    'b': 'index.php?page=balance',
-    'r': 'index.php?page=reportes',
-    'd': 'index.php?page=dashboard',
-  };
-  if (shortcuts[e.key]) {
-    Progress.start();
-    window.location.href = shortcuts[e.key];
-  }
-  // '/' focuses search input
-  if (e.key === '/') {
-    const searchEl = document.querySelector('.table-search-input');
-    if (searchEl) { e.preventDefault(); searchEl.focus(); searchEl.select(); }
-  }
-});
 
 // ── PWA: Service Worker ─────────────────────────────────────────
 if ('serviceWorker' in navigator) {

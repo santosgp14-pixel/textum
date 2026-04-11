@@ -6,7 +6,7 @@ require VIEW_PATH . '/layout/header.php';
 
 <!-- Page header -->
 <div class="page-header">
-  <div>
+  <div class="hide-mobile">
     <div class="page-header-title"><?php
       $h = (int)date('H');
       echo $h < 12 ? 'Buenos días' : ($h < 19 ? 'Buenas tardes' : 'Buenas noches');
@@ -15,7 +15,6 @@ require VIEW_PATH . '/layout/header.php';
   </div>
   <a href="index.php?page=pedido_nuevo" class="btn btn-primary">
     ＋ Nuevo Pedido
-    <span class="kbd" style="background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.25);color:#fff">N</span>
   </a>
 </div>
 
@@ -162,18 +161,6 @@ require VIEW_PATH . '/layout/header.php';
     <?php endif; ?>
   </div>
 
-</div>
-
-<!-- Shortcuts -->
-<div style="padding:12px 16px;background:var(--white);border:1px solid rgba(0,0,0,.07);border-radius:var(--radius-lg);font-size:.78rem;color:var(--gray-400);display:flex;gap:16px;flex-wrap:wrap;align-items:center">
-  <span style="font-weight:600">Atajos:</span>
-  <span><kbd class="kbd">N</kbd> Nuevo pedido</span>
-  <span><kbd class="kbd">P</kbd> Pedidos</span>
-  <span><kbd class="kbd">C</kbd> Clientes</span>
-  <span><kbd class="kbd">S</kbd> Stock</span>
-  <span><kbd class="kbd">B</kbd> Balance</span>
-  <span><kbd class="kbd">R</kbd> Reportes</span>
-  <span><kbd class="kbd">/</kbd> Buscar</span>
 </div>
 
 <?php require VIEW_PATH . '/layout/footer.php'; ?>

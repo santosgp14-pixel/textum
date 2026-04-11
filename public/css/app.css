@@ -400,6 +400,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .btn-outline  { background: var(--white); color: var(--gray-700); border-color: var(--gray-200); }
 .btn-outline:hover  { background: var(--gray-50); color: var(--gray-900); border-color: var(--gray-300); }
 .btn-sm { padding: 5px 12px; font-size: .8rem; }
+.show-mobile { display: none; }
 .btn-lg { padding: 12px 28px; font-size: 1rem; }
 .btn-whatsapp { background: #25d366; color: #fff; border-color: #25d366; }
 .btn-whatsapp:hover { background: #1ebe57; color: #fff; }
@@ -755,13 +756,12 @@ tbody tr:last-child td { border-bottom: none; }
 /* ── Mobile: ocultar columnas no esenciales en tablas ────────── */
 @media (max-width: 599px) {
   .hide-mobile { display: none !important; }
+  .show-mobile { display: inline !important; }
   /* Nombre de usuario en topbar oculto en pantallas muy pequeñas */
   .topbar-user { display: none; }
-  /* Zona de escaneo: input full-width, botón cámara compacto */
+  /* Zona de escaneo: input full-width */
   .barcode-zone { padding: 16px; }
   .barcode-zone > div { max-width: 100% !important; }
-  .barcode-zone .form-control { max-width: 100% !important; width: 100% !important; }
-  .barcode-zone #btn-camara { width: auto; flex-shrink: 0; white-space: nowrap; }
   /* Botones de vista: distribuir en fila sin desborde */
   .btn-vista { flex: 1 1 0; text-align: center; justify-content: center; }
   /* Card-header: apilar en columna en mobile */

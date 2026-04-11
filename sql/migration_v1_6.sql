@@ -34,3 +34,18 @@ ALTER TABLE `empresas`
   ADD COLUMN IF NOT EXISTS `descripcion_catalogo` TEXT         NULL DEFAULT NULL AFTER `activa`,
   ADD COLUMN IF NOT EXISTS `whatsapp`              VARCHAR(20)  NULL DEFAULT NULL AFTER `descripcion_catalogo`,
   ADD COLUMN IF NOT EXISTS `logo_url`              VARCHAR(255) NULL DEFAULT NULL AFTER `whatsapp`;
+
+-- 4. Tokens de "Recordarme" (persistent login)
+-- -------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `remember_tokens` (
+  `id`         INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  `user_id`    INT UNSIGNED  NOT NULL,
+  `selector`   VARCHAR(24)   NOT NULL,
+  `token_hash` VARCHAR(64)   NOT NULL,
+  `expires_at` DATETIME      NOT NULL,
+  `created_at` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_selector` (`selector`),
+  KEY `idx_remember_user` (`user_id`),
+  KEY `idx_remember_expires` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -44,6 +44,13 @@
                class="form-control<?= $error ? ' input-error' : '' ?>"
                placeholder="••••••••" required>
       </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <input type="checkbox" id="remember_me" name="remember_me" value="1"
+               style="width:16px;height:16px;cursor:pointer;accent-color:var(--blue-600)">
+        <label for="remember_me" style="font-size:.875rem;color:var(--gray-600);cursor:pointer;user-select:none">
+          Mantener sesión iniciada
+        </label>
+      </div>
       <button type="submit" class="btn btn-primary w-full btn-lg" style="margin-top:8px">
         Ingresar
       </button>

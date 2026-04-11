@@ -58,42 +58,25 @@ require VIEW_PATH . '/layout/header.php';
       <div class="flex gap-2 mb-3 flex-wrap" style="align-items:center">
 
         <button type="button" class="btn btn-sm btn-primary btn-vista" data-vista="scanner">⌨ Escáner</button>
-        <button type="button" class="btn btn-sm btn-outline btn-vista" data-vista="imagenes">🖼 Imágenes</button>
-        <button type="button" class="btn btn-sm btn-outline btn-vista" data-vista="lista">☰ Lista</button>
-      </div>
-
-      <!-- Catálogo de productos -->
-      <div id="catalogo-panel" style="display:none;margin-bottom:16px">
-        <div class="flex gap-2 mb-3 flex-wrap" style="align-items:center">
-          <input type="text" id="cat-search" class="form-control" placeholder="Buscar producto..." style="max-width:220px">
-          <select id="cat-tipo" class="form-control" style="max-width:130px">
-            <option value="">Todos</option>
-            <option value="punto">Punto</option>
-            <option value="plano">Plano</option>
-          </select>
-          <span id="cat-count" class="text-xs text-muted"></span>
-        </div>
-        <div style="max-height:480px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;background:#fff">
-          <div id="cat-grid" style="padding:4px"></div>
-        </div>
+        <span class="btn btn-sm btn-outline" style="opacity:.5;cursor:not-allowed" title="Próximamente">🖼 Imágenes</span>
+        <span class="btn btn-sm btn-outline" style="opacity:.5;cursor:not-allowed" title="Próximamente">☰ Lista</span>
+        <span style="background:#fef9c3;color:#a16207;font-size:.7rem;padding:2px 8px;border-radius:99px;font-weight:600">Próximamente</span>
       </div>
 
       <!-- Zona escaneo -->
       <div class="barcode-zone mb-4">
         <h3 style="font-size:.875rem;font-weight:700;color:var(--blue-800);margin-bottom:4px">Agregar artículo</h3>
         <p class="text-sm text-muted" style="margin-bottom:12px">Escriba el nombre o escanee / ingrese el código de barras.</p>
-        <div style="max-width:400px;margin:0 auto">
-          <div class="flex gap-2 items-center">
-            <div style="position:relative;flex:1;min-width:0">
-              <input type="text" id="barcode-input" class="form-control barcode-input"
-                     placeholder="Nombre o código de barras…" autocomplete="off">
-              <div id="nombre-search-results" class="cliente-dropdown"
-                   style="display:none;position:absolute;z-index:200;width:100%;top:calc(100% + 4px);left:0"></div>
-            </div>
-            <button type="button" id="btn-camara" class="btn btn-outline" style="flex-shrink:0" title="Escanear con cámara">
-              📷 Cámara
-            </button>
-          </div>
+        <div style="max-width:400px;margin:0 auto;position:relative">
+          <input type="text" id="barcode-input" class="form-control barcode-input"
+                 placeholder="Nombre o código de barras…" autocomplete="off"
+                 style="padding-right:48px">
+          <button type="button" id="btn-camara" title="Escanear con cámara"
+                  style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.3rem;line-height:1;padding:4px">
+            📷
+          </button>
+          <div id="nombre-search-results" class="cliente-dropdown"
+               style="display:none;position:absolute;z-index:200;width:100%;top:calc(100% + 4px);left:0"></div>
         </div>
       </div>
 
