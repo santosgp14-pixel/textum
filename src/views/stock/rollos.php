@@ -119,7 +119,7 @@ require VIEW_PATH . '/layout/header.php';
         <tr style="background:var(--gray-50)">
           <td colspan="3" class="text-right font-bold" style="padding:10px 14px">TOTAL</td>
           <td class="font-bold" style="padding:10px 14px">
-            <?= number_format(array_sum(array_column($rollos, 'metros')), 3, ',', '.') ?>
+            <?= number_format($variante['stock'], 3, ',', '.') ?>
             <?= $variante['unidad'] ?>
           </td>
           <td colspan="3"></td>

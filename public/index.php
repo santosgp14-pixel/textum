@@ -75,6 +75,7 @@ $router->add('GET',  'pedido_abierto',   fn() => (new PedidosController())->pedi
 $router->add('POST', 'pedido_item_add',  fn() => (new PedidosController())->agregarItem());
 $router->add('POST', 'pedido_item_del',  fn() => (new PedidosController())->eliminarItem());
 $router->add('POST', 'pedido_confirmar', fn() => (new PedidosController())->confirmar());
+$router->add('POST', 'pedido_reaplicar_stock',      fn() => (new PedidosController())->reaplicarStock());
 $router->add('POST', 'pedido_anular',               fn() => (new PedidosController())->anular());
 $router->add('POST', 'pedido_anular_todos',         fn() => (new PedidosController())->anularTodosAbiertos());
 $router->add('POST', 'pedido_anular_seleccionados', fn() => (new PedidosController())->anularSeleccionados());

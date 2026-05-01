@@ -292,11 +292,14 @@ class PedidosController {
                     "UPDATE variantes SET stock = ? WHERE id = ?"
                 )->execute([$stock_despues, $item['variante_id']]);
 
-                // Marcar rollo como agotado si este ítem vino de un rollo específico
+                // Descontar metros del rollo y marcarlo agotado si se vacía
                 if (!empty($item['rollo_id'])) {
                     $this->db->prepare(
-                        "UPDATE rollos SET estado = 'agotado' WHERE id = ? AND empresa_id = ?"
-                    )->execute([$item['rollo_id'], $eid]);
+                        "UPDATE rollos
+                         SET metros = GREATEST(0, metros - ?),
+                             estado  = IF(metros - ? <= 0, 'agotado', estado)
+                         WHERE id = ? AND empresa_id = ?"
+                    )->execute([$item['cantidad'], $item['cantidad'], $item['rollo_id'], $eid]);
                 }
 
                 // Registrar movimiento de stock
@@ -340,6 +343,116 @@ class PedidosController {
         } catch (Throwable $e) {
             $this->db->rollBack();
             echo json_encode(['ok' => false, 'msg' => 'Error interno al confirmar pedido.']);
+        }
+        exit;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // RE-APLICAR STOCK (reparación: pedido confirmado sin movimientos)
+    // Solo admin. Idempotente: rechaza si ya hay movimientos registrados.
+    // ──────────────────────────────────────────────────────────
+
+    public function reaplicarStock(): void {
+        Auth::requireAdmin();
+        header('Content-Type: application/json');
+
+        $eid       = Auth::empresaId();
+        $uid       = Auth::userId();
+        $pedido_id = (int)($_POST['pedido_id'] ?? 0);
+
+        $pedido = $this->findPedido($pedido_id, $eid);
+
+        if ($pedido['estado'] !== 'confirmado') {
+            echo json_encode(['ok' => false, 'msg' => 'Solo aplica a pedidos confirmados.']);
+            exit;
+        }
+
+        // Idempotencia: si ya hay movimientos, no hacer nada
+        $stmtCheck = $this->db->prepare(
+            "SELECT COUNT(*) FROM movimientos_stock WHERE pedido_id = ? AND empresa_id = ? AND tipo = 'venta'"
+        );
+        $stmtCheck->execute([$pedido_id, $eid]);
+        if ((int)$stmtCheck->fetchColumn() > 0) {
+            echo json_encode(['ok' => false, 'msg' => 'El stock ya fue descontado para este pedido.']);
+            exit;
+        }
+
+        $items = $this->getItems($pedido_id);
+        if (empty($items)) {
+            echo json_encode(['ok' => false, 'msg' => 'El pedido no tiene productos.']);
+            exit;
+        }
+
+        $this->db->beginTransaction();
+        try {
+            foreach ($items as $item) {
+                $stmt = $this->db->prepare(
+                    "SELECT stock FROM variantes WHERE id = ? AND empresa_id = ? FOR UPDATE"
+                );
+                $stmt->execute([$item['variante_id'], $eid]);
+                $v = $stmt->fetch();
+
+                if (!$v) {
+                    throw new RuntimeException("Variante #{$item['variante_id']} no encontrada.");
+                }
+
+                $stock_antes   = $v['stock'];
+                $stock_despues = max(0, $stock_antes - $item['cantidad']);
+
+                $this->db->prepare(
+                    "UPDATE variantes SET stock = ? WHERE id = ?"
+                )->execute([$stock_despues, $item['variante_id']]);
+
+                if (!empty($item['rollo_id'])) {
+                    $this->db->prepare(
+                        "UPDATE rollos
+                         SET metros = GREATEST(0, metros - ?),
+                             estado  = IF(metros - ? <= 0, 'agotado', estado)
+                         WHERE id = ? AND empresa_id = ?"
+                    )->execute([$item['cantidad'], $item['cantidad'], $item['rollo_id'], $eid]);
+                }
+
+                $this->db->prepare(
+                    "INSERT INTO movimientos_stock
+                     (empresa_id, variante_id, pedido_id, usuario_id, tipo, cantidad, stock_antes, stock_despues)
+                     VALUES (?,?,?,?,'venta',?,?,?)"
+                )->execute([
+                    $eid, $item['variante_id'], $pedido_id, $uid,
+                    -$item['cantidad'], $stock_antes, $stock_despues
+                ]);
+            }
+
+            // Registrar ingreso en balance si aún no existe
+            $stmtBal = $this->db->prepare(
+                "SELECT COUNT(*) FROM balance_movimientos WHERE pedido_id = ? AND empresa_id = ?"
+            );
+            $stmtBal->execute([$pedido_id, $eid]);
+            if ((int)$stmtBal->fetchColumn() === 0) {
+                $this->db->prepare(
+                    "INSERT INTO balance_movimientos
+                     (empresa_id, pedido_id, usuario_id, tipo, monto, descripcion)
+                     VALUES (?,?,?,'ingreso_venta',?,?)"
+                )->execute([
+                    $eid, $pedido_id, $uid,
+                    $pedido['total'],
+                    "Pedido #$pedido_id — stock/balance reaplicado manualmente"
+                ]);
+            }
+
+            $this->db->commit();
+
+            echo json_encode([
+                'ok'  => true,
+                'msg' => 'Stock y balance reaplicados correctamente.',
+                'redirect' => BASE_URL . "/index.php?page=pedido_detalle&id=$pedido_id",
+            ]);
+
+        } catch (RuntimeException $e) {
+            $this->db->rollBack();
+            echo json_encode(['ok' => false, 'msg' => $e->getMessage()]);
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            echo json_encode(['ok' => false, 'msg' => 'Error interno al reaplicar stock.']);
         }
         exit;
     }
@@ -392,8 +505,8 @@ class PedidosController {
                     $this->db->prepare("UPDATE variantes SET stock=? WHERE id=?")->execute([$new, $item['variante_id']]);
                     if (!empty($item['rollo_id'])) {
                         $this->db->prepare(
-                            "UPDATE rollos SET estado = 'disponible' WHERE id = ? AND empresa_id = ?"
-                        )->execute([$item['rollo_id'], $eid]);
+                            "UPDATE rollos SET metros = metros + ?, estado = 'disponible' WHERE id = ? AND empresa_id = ?"
+                        )->execute([$item['cantidad'], $item['rollo_id'], $eid]);
                     }
                     $this->db->prepare(
                         "INSERT INTO movimientos_stock (empresa_id,variante_id,pedido_id,usuario_id,tipo,cantidad,stock_antes,stock_despues)
@@ -488,11 +601,11 @@ class PedidosController {
                     "UPDATE variantes SET stock = ? WHERE id = ?"
                 )->execute([$stock_despues, $item['variante_id']]);
 
-                // Restaurar rollo a disponible si aplica
+                // Restaurar rollo: reponer metros y estado disponible
                 if (!empty($item['rollo_id'])) {
                     $this->db->prepare(
-                        "UPDATE rollos SET estado = 'disponible' WHERE id = ? AND empresa_id = ?"
-                    )->execute([$item['rollo_id'], $eid]);
+                        "UPDATE rollos SET metros = metros + ?, estado = 'disponible' WHERE id = ? AND empresa_id = ?"
+                    )->execute([$item['cantidad'], $item['rollo_id'], $eid]);
                 }
 
                 // Registrar movimiento de reposición
@@ -603,6 +716,12 @@ class PedidosController {
         $items  = $this->getItems($id);
         // Token para recibo público compartible (sin DB)
         $receiptToken = hash_hmac('sha256', 'receipt:' . $id, APP_SECRET);
+        // ¿Ya se descontó stock para este pedido?
+        $stmtMov = $this->db->prepare(
+            "SELECT COUNT(*) FROM movimientos_stock WHERE pedido_id = ? AND empresa_id = ? AND tipo = 'venta'"
+        );
+        $stmtMov->execute([$id, $eid]);
+        $stockAplicado = (int)$stmtMov->fetchColumn() > 0;
         require VIEW_PATH . '/pedidos/detalle.php';
     }
 

@@ -25,6 +25,11 @@ require VIEW_PATH . '/layout/header.php';
     </button>
     <a href="<?= htmlspecialchars($reciboUrl) ?>" target="_blank" class="btn btn-sm btn-outline">Ver recibo</a>
     <?php endif; ?>
+    <?php if ($pedido['estado'] === 'confirmado' && Auth::isAdmin() && !$stockAplicado): ?>
+    <button id="btn-reaplicar-stock" class="btn btn-sm btn-warning" data-pedido-id="<?= $pedido['id'] ?>">
+      ⚠ Reaplicar stock
+    </button>
+    <?php endif; ?>
     <?php if (in_array($pedido['estado'], ['abierto','confirmado']) && Auth::isAdmin()): ?>
     <button id="btn-anular" class="btn btn-sm btn-danger" data-pedido-id="<?= $pedido['id'] ?>">Anular</button>
     <?php endif; ?>
@@ -203,17 +208,61 @@ require VIEW_PATH . '/layout/header.php';
 </div>
 <?php endif; ?>
 
+<?php if ($pedido['estado'] === 'confirmado' && Auth::isAdmin() && !$stockAplicado): ?>
+<div class="modal" id="modal-reaplicar">
+  <div class="modal-backdrop"></div>
+  <div class="modal-box">
+    <h3 class="modal-title">Reaplicar descuento de stock</h3>
+    <p class="text-sm text-muted" style="margin-bottom:16px">
+      No se encontraron movimientos de stock para este pedido confirmado.<br>
+      Esta acción descontará el stock de cada artículo y registrará el ingreso en balance (si aún no existe).
+    </p>
+    <div style="background:var(--yellow-50,#fefce8);border:1px solid var(--yellow-300,#fde047);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:.85rem;color:var(--yellow-800,#854d0e)">
+      <strong>Atención:</strong> verificá que el stock no haya sido ajustado manualmente antes de continuar.
+    </div>
+    <div class="flex gap-3 mt-4">
+      <button id="btn-confirmar-reaplicar" class="btn btn-warning">Confirmar</button>
+      <button id="modal-reaplicar-close" class="btn btn-outline">Cancelar</button>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
+
 <?php require VIEW_PATH . '/layout/footer.php'; ?>
 <script>
 (function() {
-  var btn = document.getElementById('btn-copy-recibo');
-  if (!btn) return;
-  btn.addEventListener('click', function() {
-    var url = this.dataset.url;
-    navigator.clipboard.writeText(url).then(function() {
-      btn.textContent = '¡Copiado!';
-      setTimeout(function() { btn.textContent = 'Copiar enlace'; }, 2000);
+  // ── Copiar enlace recibo ──────────────────────────────────
+  var btnCopy = document.getElementById('btn-copy-recibo');
+  if (btnCopy) {
+    btnCopy.addEventListener('click', function() {
+      var url = this.dataset.url;
+      navigator.clipboard.writeText(url).then(function() {
+        btnCopy.textContent = '¡Copiado!';
+        setTimeout(function() { btnCopy.textContent = 'Copiar enlace'; }, 2000);
+      });
     });
-  });
+  }
+
+  // ── Modal Reaplicar Stock ─────────────────────────────────
+  var btnReaplicar   = document.getElementById('btn-reaplicar-stock');
+  var modalReaplicar = document.getElementById('modal-reaplicar');
+  if (btnReaplicar && modalReaplicar) {
+    btnReaplicar.addEventListener('click', function() { modalReaplicar.classList.add('show'); });
+    modalReaplicar.querySelector('.modal-backdrop').addEventListener('click', function() { modalReaplicar.classList.remove('show'); });
+    document.getElementById('modal-reaplicar-close').addEventListener('click', function() { modalReaplicar.classList.remove('show'); });
+    document.getElementById('btn-confirmar-reaplicar').addEventListener('click', function() {
+      var btn = this;
+      btn.disabled = true;
+      btn.textContent = 'Aplicando...';
+      var fd = new FormData();
+      fd.append('pedido_id', btnReaplicar.dataset.pedidoId);
+      fetch('index.php?page=pedido_reaplicar_stock', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (d.ok) { window.location.href = d.redirect || window.location.href; }
+          else { alert(d.msg || 'Error.'); btn.disabled = false; btn.textContent = 'Confirmar'; }
+        });
+    });
+  }
 })();
 </script>
