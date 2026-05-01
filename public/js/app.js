@@ -658,7 +658,7 @@ if (pedidoForm) {
         _mAIrollosDisp.forEach(r => {
           const opt = document.createElement('option');
           opt.value = r.id;
-          opt.textContent = `Rollo ${r.nro_rollo || '#' + r.id}  (${parseFloat(r.metros).toLocaleString('es-AR', {minimumFractionDigits:2,maximumFractionDigits:2})} m)`;
+          opt.textContent = `Rollo ${r.nro_rollo || '#' + r.id}  (${parseFloat(r.metros).toLocaleString('es-AR', {minimumFractionDigits:2,maximumFractionDigits:2})} ${mAIvar?.unidad || 'u.'})`;
           opt.dataset.metros = r.metros;
           opt.dataset.nro    = r.nro_rollo || '';
           mAIrolloSel.appendChild(opt);
