@@ -136,6 +136,7 @@ class StockController {
                         $vDesc      = trim($v['descripcion'] ?? '');
                         $vUnidad    = in_array($v['unidad'] ?? '', ['metro','kilo','rollo'])
                                       ? $v['unidad'] : $data['unidad'];
+                        $vCosto     = (float)($v['costo'] ?? 0);
                         $vPrecio    = (float)($v['precio'] ?? $data['precio']);
                         $vPrecioFrac= (float)($v['precio_fraccionado'] ?? 0);
                         if ($vPrecioFrac <= 0 && $vPrecio > 0) $vPrecioFrac = round($vPrecio * 1.15, 2);
@@ -148,9 +149,9 @@ class StockController {
                         $this->db->prepare(
                             "INSERT INTO variantes
                              (tela_id, empresa_id, descripcion, codigo_barras,
-                              unidad, precio, precio_fraccionado, precio_rollo, minimo_venta, stock)
-                             VALUES (?,?,?,?,?,?,?,0,?,0)"
-                        )->execute([$id, $eid, $vDesc, $vBarcode, $vUnidad, $vPrecio, $vPrecioFrac, $data['minimo_venta']]);
+                              unidad, costo, precio, precio_fraccionado, precio_rollo, minimo_venta, stock)
+                             VALUES (?,?,?,?,?,?,?,?,0,?,0)"
+                        )->execute([$id, $eid, $vDesc, $vBarcode, $vUnidad, $vCosto, $vPrecio, $vPrecioFrac, $data['minimo_venta']]);
                         $varId = (int)$this->db->lastInsertId();
 
                         // Rollos de esta variante

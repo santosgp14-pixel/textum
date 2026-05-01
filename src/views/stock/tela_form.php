@@ -484,6 +484,12 @@ require VIEW_PATH . '/layout/header.php';
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
         <div class="form-group" style="margin:0">
+          <label class="form-label">Costo ($)</label>
+          <input type="number" name="variantes[${idx}][costo]" class="v-costo form-control"
+                 value="0" step="0.01" min="0">
+          <div class="text-xs text-muted" style="margin-top:3px">Precio de compra</div>
+        </div>
+        <div class="form-group" style="margin:0">
           <label class="form-label">Precio fraccionado ($) <span style="color:var(--gray-400);font-weight:400;font-size:.78rem">+15%</span></label>
           <input type="number" name="variantes[${idx}][precio_fraccionado]" class="v-precio-frac form-control"
                  value="0" step="0.01" min="0">
