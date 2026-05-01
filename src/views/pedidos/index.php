@@ -3,17 +3,19 @@ $pageTitle   = 'Pedidos';
 $currentPage = 'pedidos';
 require VIEW_PATH . '/layout/header.php';
 
-$cntAbiertos   = count(array_filter($pedidos, fn($p) => $p['estado'] === 'abierto'));
+$cntAbiertos    = count(array_filter($pedidos, fn($p) => $p['estado'] === 'abierto'));
 $cntConfirmados = count(array_filter($pedidos, fn($p) => $p['estado'] === 'confirmado'));
-$cntAnulados   = count(array_filter($pedidos, fn($p) => $p['estado'] === 'anulado'));
-$filtroEstado  = $_GET['estado'] ?? '';
+$cntAnulados    = count(array_filter($pedidos, fn($p) => $p['estado'] === 'anulado'));
+$cntActivos     = $cntAbiertos + $cntConfirmados;
+$idsAbiertos    = array_values(array_map(fn($p) => $p['id'], array_filter($pedidos, fn($p) => $p['estado'] === 'abierto')));
+$filtroEstado   = $_GET['estado'] ?? '';
 ?>
 
 <!-- Page header -->
 <div class="page-header">
   <div>
     <div class="page-header-title">Pedidos</div>
-    <div class="page-header-sub"><?= count($pedidos) ?> pedido<?= count($pedidos) != 1 ? 's' : '' ?> en total</div>
+    <div class="page-header-sub"><?= $cntActivos ?> pedido<?= $cntActivos != 1 ? 's' : '' ?> activo<?= $cntActivos != 1 ? 's' : '' ?></div>
   </div>
   <a href="index.php?page=pedido_nuevo" class="btn btn-primary">
     ＋ Nuevo Pedido
@@ -21,7 +23,7 @@ $filtroEstado  = $_GET['estado'] ?? '';
   </a>
   <?php if ($cntAbiertos > 1 && Auth::isAdmin()): ?>
   <button id="btn-anular-todos" class="btn btn-danger btn-sm"
-          data-count="<?= $cntAbiertos ?>">
+          data-ids="<?= htmlspecialchars(json_encode($idsAbiertos)) ?>">
     Anular todos los abiertos (<?= $cntAbiertos ?>)
   </button>
   <?php endif; ?>
@@ -41,7 +43,7 @@ $filtroEstado  = $_GET['estado'] ?? '';
       <div class="filter-tabs" style="margin-bottom:0">
         <a href="index.php?page=pedidos"
            class="filter-tab <?= $filtroEstado === '' ? 'active' : '' ?>">
-          Todos <span class="tab-count"><?= count($pedidos) ?></span>
+          Activos <span class="tab-count"><?= $cntActivos ?></span>
         </a>
         <?php if ($cntAbiertos): ?>
         <a href="index.php?page=pedidos&estado=abierto"
@@ -76,7 +78,7 @@ $filtroEstado  = $_GET['estado'] ?? '';
     <?php
     $pedidosFiltrados = $filtroEstado
       ? array_values(array_filter($pedidos, fn($p) => $p['estado'] === $filtroEstado))
-      : $pedidos;
+      : array_values(array_filter($pedidos, fn($p) => $p['estado'] !== 'anulado'));
     ?>
     <?php if (empty($pedidosFiltrados)): ?>
     <div class="empty-state">
@@ -290,16 +292,13 @@ if (btnAnularSel) {
 var btnAnularTodos = document.getElementById('btn-anular-todos');
 if (btnAnularTodos) {
   btnAnularTodos.addEventListener('click', function() {
-    var n = this.dataset.count;
-    if (!confirm('¿Anular los ' + n + ' pedidos abiertos? Esta acción no se puede deshacer.')) return;
-    btnAnularTodos.disabled = true;
-    btnAnularTodos.textContent = 'Anulando...';
-    fetch('index.php?page=pedido_anular_todos', { method: 'POST' })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.ok) window.location.href = data.redirect;
-        else alert('Error al anular.');
-      });
+    var ids = JSON.parse(this.dataset.ids || '[]');
+    if (!ids.length) return;
+    openAnularModal(
+      ids,
+      'Anular todos los abiertos (' + ids.length + ')',
+      'Se anularán los ' + ids.length + ' pedidos abiertos. Esta acción no se puede deshacer.'
+    );
   });
 }
 </script>
