@@ -317,6 +317,7 @@ require VIEW_PATH . '/layout/header.php';
   const fmt = n => new Intl.NumberFormat('es-AR', { style:'currency', currency:'ARS', minimumFractionDigits:2 }).format(n);
   const precioInput = document.getElementById('precio');
   const rindeInput  = document.getElementById('rinde');
+  let _fromPrecio = false; // evita loop al sincronizar precio ↔ calculadora
 
   // ── Tabs de calculadoras ──────────────────────────────────
   document.querySelectorAll('.calc-tab').forEach(btn => {
@@ -342,9 +343,9 @@ require VIEW_PATH . '/layout/header.php';
     const precioKg = parseFloat(c1PrecioKg.value) || 0;
     const rinde    = parseFloat(c1Rinde.value)    || 0;
     if (!precioKg || !rinde) { c1Res.textContent = ''; return; }
-    const precioMetro = precioKg / rinde; // 1 kg * precio / rinde
+    const precioMetro = precioKg / rinde;
     if (rindeInput) rindeInput.value = rinde.toFixed(3);
-    if (precioInput) precioInput.value = precioMetro.toFixed(2);
+    if (precioInput && !_fromPrecio) precioInput.value = precioMetro.toFixed(2);
     c1Res.innerHTML =
       `${fmt(precioKg)} / kg ÷ <strong>${rinde.toFixed(3)} m/kg</strong> = ` +
       `<strong style="color:var(--primary,#2563eb)">${fmt(precioMetro)} / metro</strong>`;
@@ -361,7 +362,7 @@ require VIEW_PATH . '/layout/header.php';
     const precioMtro = parseFloat(c2PrecioMtr.value) || 0;
     if (!metros || !precioMtro) { c2Res.textContent = ''; return; }
     const precioRollo = metros * precioMtro;
-    if (precioInput) precioInput.value = precioRollo.toFixed(2);
+    if (precioInput && !_fromPrecio) precioInput.value = precioRollo.toFixed(2);
     c2Res.innerHTML =
       `<strong>${metros.toFixed(3)} m</strong> × ${fmt(precioMtro)}/m = ` +
       `<strong style="color:var(--primary,#2563eb)">${fmt(precioRollo)} / rollo</strong>`;
@@ -388,6 +389,25 @@ require VIEW_PATH . '/layout/header.php';
     const lbl = tipoSel?.value === 'punto' ? 'Kilos *' : 'Metros *';
     document.querySelectorAll('.rollo-cantidad-label').forEach(el => el.textContent = lbl);
   }
+  // Sincronizar precioInput → calculadora activa (sin sobreescribir precioInput)
+  function syncPrecioToCalc() {
+    const t = tipoSel?.value;
+    const p = precioInput?.value;
+    if (!p) return;
+    _fromPrecio = true;
+    if (t === 'punto') {
+      c1PrecioKg.value = p;
+      if (rindeInput?.value) c1Rinde.value = rindeInput.value;
+      calc1();
+    } else if (t === 'plano') {
+      c2PrecioMtr.value = p;
+      calc2();
+    }
+    _fromPrecio = false;
+  }
+
+  precioInput?.addEventListener('input', syncPrecioToCalc);
+
   function onTipoChange() {
     const t = tipoSel?.value;
     if (unidadSel) {
@@ -395,8 +415,11 @@ require VIEW_PATH . '/layout/header.php';
       if (t === 'plano') unidadSel.value = 'metro';
     }
     const hint = document.getElementById('minimo-hint');
-    if (hint) hint.textContent = t === 'punto' ? 'Ej: 2 kg mínimo' : t === 'plano' ? 'Ej: 5 metros mínimo' : 'Ej: 1.000';
+    if (hint) hint.textContent = t === 'punto' ? 'Ej: 2 kg mínimo' : t === 'plano' ? 'Ej: 5 metros mínimo' : 'Ej: 1.000';
     updateRolloLabels();
+    // Sincronizar al cargar en modo edición
+    if (rindeInput?.value && c1Rinde) c1Rinde.value = rindeInput.value;
+    syncPrecioToCalc();
   }
   tipoSel?.addEventListener('change', onTipoChange);
   onTipoChange(); // aplicar al cargar en modo edición
