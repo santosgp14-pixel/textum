@@ -28,14 +28,24 @@ try {
 
 $steps = [];
 
-// 1. Agregar columna precio_fraccionado
+// 1. Agregar columna precio_fraccionado (compatible MySQL 5.7+)
 try {
-    $pdo->exec("ALTER TABLE `variantes`
-        ADD COLUMN IF NOT EXISTS `precio_fraccionado` DECIMAL(12,2) NOT NULL DEFAULT 0.00
-        AFTER `precio`");
-    $steps[] = '✅ ALTER TABLE variantes: precio_fraccionado agregado.';
+    // Verificar si la columna ya existe
+    $check = $pdo->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'variantes' AND COLUMN_NAME = 'precio_fraccionado'");
+    $check->execute();
+    $exists = (int)$check->fetchColumn();
+
+    if ($exists) {
+        $steps[] = 'ℹ️ Columna precio_fraccionado ya existe. Nada que hacer.';
+    } else {
+        $pdo->exec("ALTER TABLE `variantes`
+            ADD COLUMN `precio_fraccionado` DECIMAL(12,2) NOT NULL DEFAULT 0.00
+            AFTER `precio`");
+        $steps[] = '✅ ALTER TABLE variantes: precio_fraccionado agregado.';
+    }
 } catch (Exception $e) {
-    $steps[] = '⚠️ ALTER TABLE variantes: ' . htmlspecialchars($e->getMessage());
+    $steps[] = '❌ ALTER TABLE variantes: ' . htmlspecialchars($e->getMessage());
 }
 
 // 2. Inicializar precio_fraccionado para filas existentes
