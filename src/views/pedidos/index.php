@@ -17,16 +17,7 @@ $filtroEstado   = $_GET['estado'] ?? '';
     <div class="page-header-title">Pedidos</div>
     <div class="page-header-sub"><?= $cntActivos ?> pedido<?= $cntActivos != 1 ? 's' : '' ?> activo<?= $cntActivos != 1 ? 's' : '' ?></div>
   </div>
-  <a href="index.php?page=pedido_nuevo" class="btn btn-primary">
-    ＋ Nuevo Pedido
-    <span class="kbd" style="background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.25);color:#fff">N</span>
-  </a>
-  <?php if ($cntAbiertos > 1 && Auth::isAdmin()): ?>
-  <button id="btn-anular-todos" class="btn btn-danger btn-sm"
-          data-ids="<?= htmlspecialchars(json_encode($idsAbiertos)) ?>">
-    Anular todos los abiertos (<?= $cntAbiertos ?>)
-  </button>
-  <?php endif; ?>
+  <a href="index.php?page=pedido_nuevo" class="btn btn-primary">＋ Nuevo Pedido</a>
 </div>
 
 <!-- Barra de acciones masivas -->
@@ -289,19 +280,6 @@ $filtroEstado   = $_GET['estado'] ?? '';
       });
     }
 
-    // ── Anular todos los abiertos ─────────────────────────────
-    var btnAnularTodos = document.getElementById('btn-anular-todos');
-    if (btnAnularTodos) {
-      btnAnularTodos.addEventListener('click', function() {
-        var ids = JSON.parse(this.dataset.ids || '[]');
-        if (!ids.length) return;
-        openAnularModal(
-          ids,
-          'Anular todos los abiertos (' + ids.length + ')',
-          'Se anularán los ' + ids.length + ' pedidos abiertos. Esta acción no se puede deshacer.'
-        );
-      });
-    }
   });
 })();
 </script>
