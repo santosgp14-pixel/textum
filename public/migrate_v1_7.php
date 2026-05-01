@@ -11,16 +11,24 @@ if ($secret !== 'textum_mig_v17_2026') {
     exit('Forbidden');
 }
 
-$host   = getenv('DB_HOST')     ?: 'localhost';
-$port   = getenv('DB_PORT')     ?: '3306';
-$dbname = getenv('DB_NAME')     ?: '';
-$user   = getenv('DB_USER')     ?: '';
-$pass   = getenv('DB_PASSWORD') ?: '';
+$url = getenv('MYSQL_URL') ?: ($_ENV['MYSQL_URL'] ?? ($_SERVER['MYSQL_URL'] ?? ''));
 
 try {
-    $pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4", $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-    ]);
+    if ($url) {
+        $p   = parse_url($url);
+        $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
+            $p['host'], $p['port'] ?? 3306, ltrim($p['path'], '/'));
+        $user = $p['user'] ?? '';
+        $pass = isset($p['pass']) ? urldecode($p['pass']) : '';
+    } else {
+        $host   = getenv('DB_HOST')     ?: 'localhost';
+        $port   = getenv('DB_PORT')     ?: '3306';
+        $dbname = getenv('DB_NAME')     ?: '';
+        $user   = getenv('DB_USER')     ?: '';
+        $pass   = getenv('DB_PASSWORD') ?: '';
+        $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
+    }
+    $pdo = new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 } catch (Exception $e) {
     http_response_code(500);
     exit('DB connection failed: ' . htmlspecialchars($e->getMessage()));
