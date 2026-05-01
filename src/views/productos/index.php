@@ -26,17 +26,17 @@ function fNum(float $n, int $dec = 1): string {
   <div class="stat-card">
     <div class="stat-label">Total metros</div>
     <div class="stat-value" style="font-size:1.3rem"><?= fNum($totales['stock_metros']) ?></div>
-    <div class="stat-sub">m en variantes</div>
+    <div class="stat-sub">kilos × rinde + metros</div>
   </div>
   <div class="stat-card">
-    <div class="stat-label">$ prom. x rollo</div>
+    <div class="stat-label">$ venta prom.</div>
     <div class="stat-value" style="font-size:1.15rem"><?= fPesos($totales['avg_precio_rollo']) ?></div>
-    <div class="stat-sub">precio de venta</div>
+    <div class="stat-sub">precio de venta directo</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">$ prom. x metro</div>
     <div class="stat-value" style="font-size:1.15rem"><?= fPesos($totales['avg_precio_metro']) ?></div>
-    <div class="stat-sub">precio de venta</div>
+    <div class="stat-sub">precio ÷ rinde +15%</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">Rinde promedio</div>
@@ -71,8 +71,8 @@ function fNum(float $n, int $dec = 1): string {
           <th class="hide-mobile">Tipo</th>
           <th class="hide-mobile" style="text-align:right">Kilos</th>
           <th style="text-align:right">Metros</th>
-          <th class="hide-mobile" style="text-align:right">$ x&nbsp;rollo</th>
-          <th style="text-align:right">$ x&nbsp;metro</th>
+          <th class="hide-mobile" style="text-align:right">$ venta</th>
+          <th style="text-align:right" title="precio ÷ rinde +15%">$ x&nbsp;metro</th>
           <th class="hide-mobile" style="text-align:right">Rinde</th>
           <th class="hide-mobile" style="text-align:right">Costo&nbsp;prom.</th>
           <th style="text-align:center">Var.</th>

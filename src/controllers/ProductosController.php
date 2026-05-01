@@ -30,15 +30,16 @@ class ProductosController {
         $extraCols    = $migratedV14
             ? 't.tipo, t.rinde, t.unidad, t.imagen_url,'
             : "NULL AS tipo, NULL AS rinde, NULL AS unidad, NULL AS imagen_url,";
-        $colPrecioRollo = $hasPrecioRollo
-            ? "COALESCE(AVG(CASE WHEN v.precio_rollo > 0 THEN v.precio_rollo END), 0)"
-            : "0";
         $colCosto = $hasCostoRollo
             ? "COALESCE(AVG(CASE WHEN r.costo > 0 THEN r.costo END), 0)"
             : "0";
         $joinRollos = $hasCostoRollo
             ? "LEFT JOIN rollos r ON r.variante_id = v.id"
             : "";
+        // Metros = kilos x rinde (punto) + metros directos (plano)
+        $colStockMetros = $migratedV14
+            ? "COALESCE(SUM(CASE WHEN v.unidad='kilo' THEN v.stock * COALESCE(t.rinde, 0) WHEN v.unidad='metro' THEN v.stock ELSE 0 END), 0)"
+            : "COALESCE(SUM(CASE WHEN v.unidad='metro' THEN v.stock ELSE 0 END), 0)";
 
         // ── Por tela: stock + precios + costo promedio ────────
         $stmt = $this->db->prepare(
@@ -46,9 +47,8 @@ class ProductosController {
                 t.id, t.nombre, $extraCols
                 COUNT(DISTINCT v.id) AS total_variantes,
                 COALESCE(SUM(CASE WHEN v.unidad='kilo'  THEN v.stock ELSE 0 END), 0) AS stock_kilos,
-                COALESCE(SUM(CASE WHEN v.unidad='metro' THEN v.stock ELSE 0 END), 0) AS stock_metros,
-                $colPrecioRollo AS avg_precio_rollo,
-                COALESCE(AVG(CASE WHEN v.precio > 0 THEN v.precio END), 0) AS avg_precio_metro,
+                $colStockMetros AS stock_metros,
+                COALESCE(AVG(CASE WHEN v.precio > 0 THEN v.precio END), 0) AS avg_precio_rollo,
                 $colCosto AS avg_costo
              FROM telas t
              LEFT JOIN variantes v ON v.tela_id = t.id AND v.activa = 1
@@ -59,6 +59,16 @@ class ProductosController {
         );
         $stmt->execute([$eid]);
         $productos = $stmt->fetchAll();
+
+        // Precio por metro = precio de venta / rinde x 1.15
+        foreach ($productos as &$p) {
+            $rinde  = (float)($p['rinde'] ?? 0);
+            $precio = (float)($p['avg_precio_rollo'] ?? 0);
+            $p['avg_precio_metro'] = ($rinde > 0 && $precio > 0)
+                ? round($precio / $rinde * 1.15, 2)
+                : 0;
+        }
+        unset($p);
 
         // ── Totales globales (derivados del resultado) ────────
         $totales = [
