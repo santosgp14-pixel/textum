@@ -349,6 +349,70 @@ class PedidosController {
     // ANULAR PEDIDO (solo admin, solo confirmados, transacción)
     // ──────────────────────────────────────────────────────────
 
+    public function anularSeleccionados(): void {
+        Auth::requireAdmin();
+        header('Content-Type: application/json');
+
+        $eid    = Auth::empresaId();
+        $uid    = Auth::userId();
+        $ids    = array_map('intval', $_POST['ids'] ?? []);
+        $motivo = trim($_POST['motivo'] ?? '');
+
+        if (empty($ids)) {
+            echo json_encode(['ok' => false, 'msg' => 'No se seleccionaron pedidos.']);
+            exit;
+        }
+        if (empty($motivo)) {
+            echo json_encode(['ok' => false, 'msg' => 'Se requiere un motivo de anulación.']);
+            exit;
+        }
+
+        $ok = 0;
+        foreach ($ids as $pedido_id) {
+            $pedido = $this->findPedido($pedido_id, $eid);
+
+            if ($pedido['estado'] === 'abierto') {
+                $this->db->prepare(
+                    "UPDATE pedidos SET estado='anulado', anulado_por=?, motivo_anulacion=?, anulado_at=NOW() WHERE id=?"
+                )->execute([$uid, $motivo, $pedido_id]);
+                $ok++;
+                continue;
+            }
+
+            if ($pedido['estado'] !== 'confirmado') continue;
+
+            $items = $this->getItems($pedido_id);
+            $this->db->beginTransaction();
+            try {
+                foreach ($items as $item) {
+                    $stmt = $this->db->prepare("SELECT stock FROM variantes WHERE id=? FOR UPDATE");
+                    $stmt->execute([$item['variante_id']]);
+                    $v = $stmt->fetch();
+                    $new = $v['stock'] + $item['cantidad'];
+                    $this->db->prepare("UPDATE variantes SET stock=? WHERE id=?")->execute([$new, $item['variante_id']]);
+                    $this->db->prepare(
+                        "INSERT INTO movimientos_stock (empresa_id,variante_id,pedido_id,usuario_id,tipo,cantidad,stock_antes,stock_despues)
+                         VALUES (?,?,?,?,'anulacion_venta',?,?,?)"
+                    )->execute([$eid, $item['variante_id'], $pedido_id, $uid, $item['cantidad'], $v['stock'], $new]);
+                }
+                $this->db->prepare(
+                    "INSERT INTO balance_movimientos (empresa_id,pedido_id,usuario_id,tipo,monto,descripcion)
+                     VALUES (?,?,?,'anulacion_venta',?,?)"
+                )->execute([$eid, $pedido_id, $uid, -$pedido['total'], "Anulación pedido #$pedido_id: $motivo"]);
+                $this->db->prepare(
+                    "UPDATE pedidos SET estado='anulado', anulado_por=?, motivo_anulacion=?, anulado_at=NOW() WHERE id=?"
+                )->execute([$uid, $motivo, $pedido_id]);
+                $this->db->commit();
+                $ok++;
+            } catch (Throwable $e) {
+                $this->db->rollBack();
+            }
+        }
+
+        echo json_encode(['ok' => true, 'count' => $ok, 'redirect' => BASE_URL . '/index.php?page=pedidos']);
+        exit;
+    }
+
     public function anularTodosAbiertos(): void {
         Auth::requireAdmin();
         header('Content-Type: application/json');

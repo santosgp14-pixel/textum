@@ -27,6 +27,13 @@ $filtroEstado  = $_GET['estado'] ?? '';
   <?php endif; ?>
 </div>
 
+<!-- Barra de acciones masivas -->
+<div id="bulk-toolbar" style="display:none;padding:10px 20px;background:#fef3c7;border:1px solid #fde68a;border-bottom:none;border-radius:8px 8px 0 0;align-items:center;gap:12px">
+  <span id="bulk-count" style="font-size:.9rem;font-weight:600;color:#92400e">0 seleccionados</span>
+  <button id="btn-anular-seleccionados" class="btn btn-danger btn-sm">Anular seleccionados</button>
+  <button id="btn-deselect-all" class="btn btn-sm btn-outline" style="margin-left:auto">Deseleccionar todo</button>
+</div>
+
 <div class="card">
   <!-- Filtros -->
   <div style="padding:14px 20px;border-bottom:1px solid var(--gray-100)">
@@ -84,6 +91,7 @@ $filtroEstado  = $_GET['estado'] ?? '';
     <table id="tabla-pedidos">
       <thead>
         <tr>
+          <th style="width:36px"><input type="checkbox" id="chk-all" title="Seleccionar todos"></th>
           <th>#</th>
           <th>Fecha</th>
           <th>Estado</th>
@@ -95,7 +103,12 @@ $filtroEstado  = $_GET['estado'] ?? '';
       </thead>
       <tbody>
         <?php foreach ($pedidosFiltrados as $p): ?>
-        <tr data-href="index.php?page=pedido_detalle&id=<?= $p['id'] ?>">
+        <tr data-href="index.php?page=pedido_detalle&id=<?= $p['id'] ?>" data-id="<?= $p['id'] ?>" data-estado="<?= $p['estado'] ?>">
+          <td onclick="event.stopPropagation()" style="vertical-align:middle">
+            <?php if (in_array($p['estado'], ['abierto','confirmado'])): ?>
+            <input type="checkbox" class="chk-pedido" data-id="<?= $p['id'] ?>">
+            <?php endif; ?>
+          </td>
           <td>
             <span class="font-bold text-muted">#<?= $p['id'] ?></span>
           </td>
@@ -132,6 +145,60 @@ $filtroEstado  = $_GET['estado'] ?? '';
 <script>
 initTableSearch('search-pedidos', 'tabla-pedidos');
 initRowLinks('tabla-pedidos');
+
+// ── Selección múltiple ──────────────────────────────────────────
+function updateBulkToolbar() {
+  var checked = document.querySelectorAll('.chk-pedido:checked');
+  var toolbar = document.getElementById('bulk-toolbar');
+  var countEl = document.getElementById('bulk-count');
+  if (checked.length > 0) {
+    toolbar.style.display = 'flex';
+    countEl.textContent = checked.length + ' seleccionado' + (checked.length > 1 ? 's' : '');
+  } else {
+    toolbar.style.display = 'none';
+  }
+}
+
+document.getElementById('chk-all').addEventListener('change', function() {
+  document.querySelectorAll('.chk-pedido').forEach(function(c) { c.checked = this.checked; }, this);
+  updateBulkToolbar();
+});
+
+document.querySelectorAll('.chk-pedido').forEach(function(c) {
+  c.addEventListener('change', function() {
+    var all = document.querySelectorAll('.chk-pedido');
+    var checked = document.querySelectorAll('.chk-pedido:checked');
+    document.getElementById('chk-all').indeterminate = (checked.length > 0 && checked.length < all.length);
+    document.getElementById('chk-all').checked = (checked.length === all.length);
+    updateBulkToolbar();
+  });
+});
+
+document.getElementById('btn-deselect-all').addEventListener('click', function() {
+  document.querySelectorAll('.chk-pedido').forEach(function(c) { c.checked = false; });
+  document.getElementById('chk-all').checked = false;
+  document.getElementById('chk-all').indeterminate = false;
+  updateBulkToolbar();
+});
+
+document.getElementById('btn-anular-seleccionados').addEventListener('click', function() {
+  var checked = document.querySelectorAll('.chk-pedido:checked');
+  if (!checked.length) return;
+  var ids = Array.from(checked).map(function(c) { return c.dataset.id; });
+  var motivo = prompt('Motivo de anulación para los ' + ids.length + ' pedidos seleccionados:');
+  if (!motivo || !motivo.trim()) return;
+  document.getElementById('btn-anular-seleccionados').disabled = true;
+  document.getElementById('btn-anular-seleccionados').textContent = 'Anulando...';
+  var fd = new FormData();
+  ids.forEach(function(id) { fd.append('ids[]', id); });
+  fd.append('motivo', motivo.trim());
+  fetch('index.php?page=pedido_anular_seleccionados', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) window.location.href = data.redirect;
+      else alert('Error: ' + data.msg);
+    });
+});
 
 // Anular pedido individual desde la lista
 document.querySelectorAll('.btn-anular-row').forEach(btn => {

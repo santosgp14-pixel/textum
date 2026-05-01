@@ -70,7 +70,9 @@ function fNum(float $n, int $dec = 1): string {
     <table>
       <thead>
         <tr>
-          <th>Producto</th>
+          <th id="th-producto" style="cursor:pointer;user-select:none;white-space:nowrap" title="Ordenar alfabéticamente">
+            Producto <span id="sort-icon" style="font-size:.75rem;color:#9ca3af">▲</span>
+          </th>
           <th class="hide-mobile">Tipo</th>
           <th class="hide-mobile" style="text-align:right">Kilos</th>
           <th style="text-align:right">Metros</th>
@@ -148,6 +150,24 @@ function fNum(float $n, int $dec = 1): string {
 <script>
 function fPesos(n) { return '$' + Math.round(n).toLocaleString('es-AR'); }
 function fNum(n, d) { return n.toLocaleString('es-AR', {minimumFractionDigits:d??1,maximumFractionDigits:d??1}); }
+
+// ── Ordenar tabla por nombre ─────────────────────────────
+var _sortAsc = true;
+document.getElementById('th-producto').addEventListener('click', function() {
+  _sortAsc = !_sortAsc;
+  document.getElementById('sort-icon').textContent = _sortAsc ? '▲' : '▼';
+  var tbody = document.querySelector('#prod-kpi-panel').closest('.card') ? null : null;
+  // find the tbody that contains .prod-row
+  var rows = Array.from(document.querySelectorAll('.prod-row'));
+  if (!rows.length) return;
+  var tbody = rows[0].closest('tbody');
+  rows.sort(function(a, b) {
+    var na = a.dataset.nombre.toLowerCase();
+    var nb = b.dataset.nombre.toLowerCase();
+    return _sortAsc ? na.localeCompare(nb, 'es') : nb.localeCompare(na, 'es');
+  });
+  rows.forEach(function(r) { tbody.appendChild(r); });
+});
 
 function clearKpi() {
   document.getElementById('prod-kpi-panel').style.display = 'none';
