@@ -163,9 +163,31 @@ require VIEW_PATH . '/layout/header.php';
            onclick="return confirm('¿Salir? El pedido quedará abierto.')">
           Guardar y salir
         </a>
+        <button id="btn-anular" class="btn btn-danger w-full" style="margin-top:4px"
+                data-pedido-id="<?= $pedido['id'] ?>">
+          Anular pedido
+        </button>
       </div>
     </div>
 
+  </div>
+
+  <!-- Modal: Anular pedido -->
+  <div id="modal-anular" class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-box" style="max-width:400px">
+      <div class="flex justify-between items-center" style="margin-bottom:14px">
+        <span class="font-bold" style="font-size:1rem">Anular pedido #<?= $pedido['id'] ?></span>
+        <button type="button" id="btn-cerrar-anular" class="btn-icon">✕</button>
+      </div>
+      <p class="text-sm text-muted" style="margin-bottom:12px">El pedido se marcará como anulado. No se descontará stock ya que no fue confirmado.</p>
+      <label class="form-label" for="motivo-anulacion">Motivo <span style="color:var(--red-500)">*</span></label>
+      <textarea id="motivo-anulacion" class="form-control" rows="3" placeholder="Ej: Error en la carga, pedido duplicado..."></textarea>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button type="button" id="btn-cerrar-anular2" class="btn btn-outline" style="flex:1">Cancelar</button>
+        <button type="button" id="btn-confirmar-anular" class="btn btn-danger" style="flex:1">Confirmar anulación</button>
+      </div>
+    </div>
   </div>
 
   <!-- Modal: Configurar venta de ítem -->

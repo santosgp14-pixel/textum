@@ -48,6 +48,17 @@ class PedidosController {
         $eid = Auth::empresaId();
         $uid = Auth::userId();
 
+        // Si ya existe un pedido abierto de este usuario, redirigir a él
+        $stmt = $this->db->prepare(
+            "SELECT id FROM pedidos WHERE empresa_id = ? AND usuario_id = ? AND estado = 'abierto' ORDER BY id DESC LIMIT 1"
+        );
+        $stmt->execute([$eid, $uid]);
+        $existente = $stmt->fetchColumn();
+        if ($existente) {
+            header('Location: ' . BASE_URL . "/index.php?page=pedido_abierto&id=$existente");
+            exit;
+        }
+
         $stmt = $this->db->prepare(
             "INSERT INTO pedidos (empresa_id, usuario_id, estado, total)
              VALUES (?, ?, 'abierto', 0.00)"
@@ -353,8 +364,21 @@ class PedidosController {
 
         $pedido = $this->findPedido($pedido_id, $eid);
 
+        // Pedido abierto: anular sin tocar stock ni balance (no se confirmó)
+        if ($pedido['estado'] === 'abierto') {
+            $this->db->prepare(
+                "UPDATE pedidos SET estado='anulado', anulado_por=?, motivo_anulacion=?, anulado_at=NOW() WHERE id=?"
+            )->execute([$uid, $motivo, $pedido_id]);
+            echo json_encode([
+                'ok'       => true,
+                'msg'      => 'Pedido anulado.',
+                'redirect' => BASE_URL . "/index.php?page=pedidos",
+            ]);
+            exit;
+        }
+
         if ($pedido['estado'] !== 'confirmado') {
-            echo json_encode(['ok' => false, 'msg' => 'Solo se pueden anular pedidos confirmados.']);
+            echo json_encode(['ok' => false, 'msg' => 'Solo se pueden anular pedidos abiertos o confirmados.']);
             exit;
         }
 

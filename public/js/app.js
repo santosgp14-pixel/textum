@@ -976,18 +976,23 @@ if (pedidoForm) {
 const btnAnular = document.getElementById('btn-anular');
 if (btnAnular) {
   const modal     = document.getElementById('modal-anular');
-  const btnClose  = document.getElementById('modal-close');
   const btnConfAn = document.getElementById('btn-confirmar-anular');
   const motivoEl  = document.getElementById('motivo-anulacion');
   const pedidoId  = btnAnular.dataset.pedidoId;
 
+  const closeAnular = () => { modal.classList.remove('show'); motivoEl.value = ''; };
+
   btnAnular.addEventListener('click', () => modal.classList.add('show'));
-  btnClose?.addEventListener('click', () => modal.classList.remove('show'));
-  modal?.querySelector('.modal-backdrop')?.addEventListener('click', () => modal.classList.remove('show'));
+  // Botones de cierre: detalle usa modal-close, abierto usa btn-cerrar-anular / btn-cerrar-anular2
+  document.getElementById('modal-close')?.addEventListener('click', closeAnular);
+  document.getElementById('btn-cerrar-anular')?.addEventListener('click', closeAnular);
+  document.getElementById('btn-cerrar-anular2')?.addEventListener('click', closeAnular);
+  modal?.querySelector('.modal-backdrop')?.addEventListener('click', closeAnular);
 
   btnConfAn?.addEventListener('click', () => {
     const motivo = motivoEl.value.trim();
     if (!motivo) { Toast.warn('Ingresá el motivo de anulación.'); return; }
+    btnConfAn.disabled = true;
     btnConfAn.innerHTML = '<span class="spinner"></span> Anulando...';
 
     const fd = new FormData();
@@ -1000,7 +1005,7 @@ if (btnAnular) {
         if (!data.ok) {
           Toast.error('Error: ' + data.msg);
           btnConfAn.disabled = false;
-          btnConfAn.textContent = 'Confirmar Anulación';
+          btnConfAn.textContent = 'Confirmar anulación';
           return;
         }
         window.location.href = data.redirect;
