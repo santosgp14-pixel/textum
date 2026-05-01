@@ -35,6 +35,22 @@ class ProductosController {
             ? "COALESCE(SUM(CASE WHEN v.unidad='kilo' THEN v.stock * COALESCE(t.rinde, 0) WHEN v.unidad='metro' THEN v.stock ELSE 0 END), 0)"
             : "COALESCE(SUM(CASE WHEN v.unidad='metro' THEN v.stock ELSE 0 END), 0)";
 
+        // ── Costo: si rollos.costo existe, promediamos desde rollos; si no, desde variantes.costo ──
+        if ($hasCostoRollo) {
+            $colCostoJoin = "LEFT JOIN (
+                    SELECT variante_id,
+                           AVG(CASE WHEN costo > 0 THEN costo END) AS avg_r_costo
+                    FROM rollos GROUP BY variante_id
+                ) r_avg ON r_avg.variante_id = v.id";
+            $colAvgCosto = "COALESCE(AVG(
+                    CASE WHEN COALESCE(r_avg.avg_r_costo, 0) > 0 THEN r_avg.avg_r_costo
+                         WHEN v.costo > 0 THEN v.costo END
+                ), 0)";
+        } else {
+            $colCostoJoin = "";
+            $colAvgCosto  = "COALESCE(AVG(CASE WHEN v.costo > 0 THEN v.costo END), 0)";
+        }
+
         // ── Por tela: stock + precios + costo promedio ────────
         $stmt = $this->db->prepare(
             "SELECT
@@ -43,9 +59,10 @@ class ProductosController {
                 COALESCE(SUM(CASE WHEN v.unidad='kilo'  THEN v.stock ELSE 0 END), 0) AS stock_kilos,
                 $colStockMetros AS stock_metros,
                 COALESCE(AVG(CASE WHEN v.precio > 0 THEN v.precio END), 0) AS avg_precio_rollo,
-                COALESCE(AVG(CASE WHEN v.costo > 0 THEN v.costo END), 0) AS avg_costo
+                $colAvgCosto AS avg_costo
              FROM telas t
              LEFT JOIN variantes v ON v.tela_id = t.id AND v.activa = 1
+             $colCostoJoin
              WHERE t.empresa_id = ? AND t.activa = 1
              GROUP BY t.id
              ORDER BY t.nombre"
@@ -87,13 +104,28 @@ class ProductosController {
         if ($cnt_rinde) $totales['avg_rinde']        /= $cnt_rinde;
         if ($cnt_costo) $totales['avg_costo']        /= $cnt_costo;
 
-        // Costo promedio por kilo = promedio ponderado de variantes.costo x stock
+        // Costo promedio por kilo = promedio ponderado de (rollos.costo ?? variante.costo) × stock
         if ($totales['stock_kilos'] > 0) {
-            $stmtCosto = $this->db->prepare(
-                "SELECT COALESCE(SUM(v.costo * v.stock) / NULLIF(SUM(v.stock), 0), 0)
-                 FROM variantes v
-                 WHERE v.empresa_id = ? AND v.activa = 1 AND v.unidad = 'kilo' AND v.costo > 0"
-            );
+            if ($hasCostoRollo) {
+                $stmtCosto = $this->db->prepare(
+                    "SELECT COALESCE(
+                         SUM(COALESCE(NULLIF(r_avg.avg_r_costo, 0), NULLIF(v.costo, 0)) * v.stock) /
+                         NULLIF(SUM(CASE WHEN COALESCE(NULLIF(r_avg.avg_r_costo,0), v.costo) > 0 THEN v.stock ELSE 0 END), 0),
+                     0)
+                     FROM variantes v
+                     LEFT JOIN (
+                         SELECT variante_id, AVG(CASE WHEN costo > 0 THEN costo END) AS avg_r_costo
+                         FROM rollos GROUP BY variante_id
+                     ) r_avg ON r_avg.variante_id = v.id
+                     WHERE v.empresa_id = ? AND v.activa = 1 AND v.unidad = 'kilo'"
+                );
+            } else {
+                $stmtCosto = $this->db->prepare(
+                    "SELECT COALESCE(SUM(v.costo * v.stock) / NULLIF(SUM(v.stock), 0), 0)
+                     FROM variantes v
+                     WHERE v.empresa_id = ? AND v.activa = 1 AND v.unidad = 'kilo' AND v.costo > 0"
+                );
+            }
             $stmtCosto->execute([$eid]);
             $costoPorKilo = (float)$stmtCosto->fetchColumn();
             if ($costoPorKilo > 0) {
