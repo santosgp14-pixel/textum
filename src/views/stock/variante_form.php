@@ -2,6 +2,12 @@
 $esEdicion   = !empty($variante);
 $pageTitle   = $esEdicion ? 'Editar Variante' : 'Nueva Variante';
 $currentPage = 'stock';
+// Helper: muestra precio sin ceros decimales innecesarios (7000 no 7000.00)
+function fmtPrecioVal(?float $v, float $default = 0): string {
+    $n = $v ?? $default;
+    $s = rtrim(rtrim(number_format($n, 2, '.', ''), '0'), '.');
+    return $s === '' ? '0' : $s;
+}
 require VIEW_PATH . '/layout/header.php';
 ?>
 
@@ -62,28 +68,28 @@ require VIEW_PATH . '/layout/header.php';
         <div class="form-group">
           <label class="form-label" for="costo">Costo ($)</label>
           <input type="number" id="costo" name="costo" class="form-control"
-                 value="<?= $variante['costo'] ?? '0.00' ?>"
+                 value="<?= fmtPrecioVal((float)($variante['costo'] ?? 0)) ?>"
                  step="0.01" min="0">
           <div class="text-xs text-muted" style="margin-top:4px">Precio de compra</div>
         </div>
         <div class="form-group">
           <label class="form-label" for="precio_rollo">Precio rollo ($)</label>
           <input type="number" id="precio_rollo" name="precio_rollo" class="form-control"
-                 value="<?= $variante['precio_rollo'] ?? '0.00' ?>"
+                 value="<?= fmtPrecioVal((float)($variante['precio_rollo'] ?? 0)) ?>"
                  step="0.01" min="0">
           <div class="text-xs text-muted" style="margin-top:4px">Venta rollo completo</div>
         </div>
         <div class="form-group">
           <label class="form-label" for="precio">Precio de venta ($) *</label>
           <input type="number" id="precio" name="precio" class="form-control"
-                 value="<?= $variante['precio'] ?? '0.00' ?>"
+                 value="<?= fmtPrecioVal((float)($variante['precio'] ?? 0)) ?>"
                  step="0.01" min="0" required>
           <div class="text-xs text-muted" style="margin-top:4px">Precio base por <?= $variante['unidad'] ?? 'metro' ?> / kilo</div>
         </div>
         <div class="form-group">
           <label class="form-label" for="precio_fraccionado">Precio fraccionado ($)</label>
           <input type="number" id="precio_fraccionado" name="precio_fraccionado" class="form-control"
-                 value="<?= $variante['precio_fraccionado'] ?? '0.00' ?>"
+                 value="<?= fmtPrecioVal((float)($variante['precio_fraccionado'] ?? 0)) ?>"
                  step="0.01" min="0">
           <div class="text-xs text-muted" style="margin-top:4px">
             Venta fraccionada <span class="badge badge-blue" style="font-size:.7rem;vertical-align:middle">+15%</span>
@@ -98,7 +104,10 @@ require VIEW_PATH . '/layout/header.php';
         if (!precioEl || !fracEl) return;
         precioEl.addEventListener('input', function() {
           const base = parseFloat(this.value) || 0;
-          if (base > 0) fracEl.value = (base * 1.15).toFixed(2);
+          if (base > 0) {
+            const frac = base * 1.15;
+            fracEl.value = String(parseFloat(frac.toFixed(2)));
+          }
         });
       })();
       </script>

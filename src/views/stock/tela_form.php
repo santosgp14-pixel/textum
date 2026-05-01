@@ -131,8 +131,8 @@ require VIEW_PATH . '/layout/header.php';
         <div class="form-group">
           <label class="form-label" for="precio">Precio ($) *</label>
           <input type="number" id="precio" name="precio" class="form-control"
-                 value="<?= number_format((float)($tela['precio'] ?? 0), 2, '.', '') ?>"
-                 step="0.01" min="0" placeholder="0.00" required>
+                 value="<?= rtrim(rtrim(number_format((float)($tela['precio'] ?? 0), 2, '.', ''), '0'), '.') ?>"
+                 step="0.01" min="0" placeholder="Ej: 7000" required>
           <div class="text-xs text-muted mt-1">Precio de venta</div>
         </div>
         <div class="form-group">
@@ -314,6 +314,12 @@ require VIEW_PATH . '/layout/header.php';
 (function () {
   const tipoSel   = document.getElementById('tipo');
   const unidadSel = document.getElementById('unidad');
+  // Helper: formatear precio sin ceros decimales innecesarios
+  const fmtPrecio = n => {
+    const r = parseFloat(n.toFixed(2));
+    return String(r);
+  };
+
   const fmt = n => new Intl.NumberFormat('es-AR', { style:'currency', currency:'ARS', minimumFractionDigits:2 }).format(n);
   const precioInput = document.getElementById('precio');
   const rindeInput  = document.getElementById('rinde');
@@ -345,7 +351,7 @@ require VIEW_PATH . '/layout/header.php';
     if (!precioKg || !rinde) { c1Res.textContent = ''; return; }
     const precioMetro = precioKg / rinde;
     if (rindeInput) rindeInput.value = rinde.toFixed(3);
-    if (precioInput && !_fromPrecio) precioInput.value = precioMetro.toFixed(2);
+    if (precioInput && !_fromPrecio) precioInput.value = fmtPrecio(precioMetro);
     c1Res.innerHTML =
       `${fmt(precioKg)} / kg ÷ <strong>${rinde.toFixed(3)} m/kg</strong> = ` +
       `<strong style="color:var(--primary,#2563eb)">${fmt(precioMetro)} / metro</strong>`;
@@ -362,7 +368,7 @@ require VIEW_PATH . '/layout/header.php';
     const precioMtro = parseFloat(c2PrecioMtr.value) || 0;
     if (!metros || !precioMtro) { c2Res.textContent = ''; return; }
     const precioRollo = metros * precioMtro;
-    if (precioInput && !_fromPrecio) precioInput.value = precioRollo.toFixed(2);
+    if (precioInput && !_fromPrecio) precioInput.value = fmtPrecio(precioRollo);
     c2Res.innerHTML =
       `<strong>${metros.toFixed(3)} m</strong> × ${fmt(precioMtro)}/m = ` +
       `<strong style="color:var(--primary,#2563eb)">${fmt(precioRollo)} / rollo</strong>`;
@@ -379,7 +385,7 @@ require VIEW_PATH . '/layout/header.php';
     const metros      = parseFloat(c3Metros.value)      || 0;
     if (!precioRollo || !metros) { c3Res.textContent = ''; return; }
     const precioMetro = precioRollo / metros;
-    if (precioInput) precioInput.value = precioMetro.toFixed(2);
+    if (precioInput) precioInput.value = fmtPrecio(precioMetro);
     c3Res.innerHTML =
       `${fmt(precioRollo)} ÷ <strong>${metros.toFixed(3)} m</strong> = ` +
       `<strong style="color:var(--primary,#2563eb)">${fmt(precioMetro)} / metro</strong>`;
