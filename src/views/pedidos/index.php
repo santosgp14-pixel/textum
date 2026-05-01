@@ -142,8 +142,6 @@ $filtroEstado   = $_GET['estado'] ?? '';
   </div>
 </div>
 
-<?php require VIEW_PATH . '/layout/footer.php'; ?>
-
 <!-- Modal de confirmación de anulación -->
 <div id="modal-anular-bulk" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.45);align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:12px;padding:28px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.25);margin:16px">
@@ -161,144 +159,151 @@ $filtroEstado   = $_GET['estado'] ?? '';
 </div>
 
 <script>
-initTableSearch('search-pedidos', 'tabla-pedidos');
-initRowLinks('tabla-pedidos');
+(function() {
+  var _anularIds = [];
 
-// ── Modal de anulación ────────────────────────────────────────────
-var _anularIds    = [];
-var _anularMulti  = false; // true = masivo (ids[]), false = individual (pedido_id)
-
-function openAnularModal(ids, titulo, desc) {
-  _anularIds   = ids;
-  _anularMulti = ids.length > 1 || (ids.length === 1 && Array.isArray(ids));
-  document.getElementById('modal-anular-bulk-title').textContent = titulo;
-  document.getElementById('modal-anular-bulk-desc').textContent  = desc;
-  document.getElementById('modal-anular-bulk-motivo').value      = '';
-  document.getElementById('modal-anular-bulk-error').style.display = 'none';
-  document.getElementById('modal-anular-bulk-confirm').disabled  = false;
-  document.getElementById('modal-anular-bulk-confirm').textContent = 'Confirmar anulación';
-  var m = document.getElementById('modal-anular-bulk');
-  m.style.display = 'flex';
-  setTimeout(function() { document.getElementById('modal-anular-bulk-motivo').focus(); }, 80);
-}
-
-function closeAnularModal() {
-  document.getElementById('modal-anular-bulk').style.display = 'none';
-}
-
-document.getElementById('modal-anular-bulk-cancel').addEventListener('click', closeAnularModal);
-document.getElementById('modal-anular-bulk').addEventListener('click', function(e) {
-  if (e.target === this) closeAnularModal();
-});
-
-document.getElementById('modal-anular-bulk-confirm').addEventListener('click', function() {
-  var motivo = document.getElementById('modal-anular-bulk-motivo').value.trim();
-  var errorEl = document.getElementById('modal-anular-bulk-error');
-  if (!motivo) { errorEl.style.display = 'block'; return; }
-  errorEl.style.display = 'none';
-  this.disabled = true;
-  this.textContent = 'Anulando…';
-
-  var fd = new FormData();
-  fd.append('motivo', motivo);
-
-  var url, isBulk = _anularIds.length > 1;
-  if (isBulk) {
-    url = 'index.php?page=pedido_anular_seleccionados';
-    _anularIds.forEach(function(id) { fd.append('ids[]', id); });
-  } else {
-    url = 'index.php?page=pedido_anular';
-    fd.append('pedido_id', _anularIds[0]);
+  function openAnularModal(ids, titulo, desc) {
+    _anularIds = ids;
+    document.getElementById('modal-anular-bulk-title').textContent = titulo;
+    document.getElementById('modal-anular-bulk-desc').textContent  = desc;
+    document.getElementById('modal-anular-bulk-motivo').value      = '';
+    document.getElementById('modal-anular-bulk-error').style.display = 'none';
+    document.getElementById('modal-anular-bulk-confirm').disabled  = false;
+    document.getElementById('modal-anular-bulk-confirm').textContent = 'Confirmar anulación';
+    document.getElementById('modal-anular-bulk').style.display = 'flex';
+    setTimeout(function() { document.getElementById('modal-anular-bulk-motivo').focus(); }, 80);
   }
 
-  fetch(url, { method: 'POST', body: fd })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.ok) {
-        window.location.href = data.redirect || 'index.php?page=pedidos';
-      } else {
-        alert('Error: ' + (data.msg || 'No se pudo anular.'));
-        document.getElementById('modal-anular-bulk-confirm').disabled = false;
-        document.getElementById('modal-anular-bulk-confirm').textContent = 'Confirmar anulación';
-      }
-    })
-    .catch(function() {
-      alert('Error de conexión.');
-      document.getElementById('modal-anular-bulk-confirm').disabled = false;
-      document.getElementById('modal-anular-bulk-confirm').textContent = 'Confirmar anulación';
-    });
-});
-
-// ── Selección múltiple ──────────────────────────────────────────
-var chkAll = document.getElementById('chk-all');
-
-function updateBulkToolbar() {
-  var checked = document.querySelectorAll('.chk-pedido:checked');
-  var toolbar  = document.getElementById('bulk-toolbar');
-  var countEl  = document.getElementById('bulk-count');
-  if (checked.length > 0) {
-    toolbar.style.display = 'flex';
-    countEl.textContent = checked.length + ' seleccionado' + (checked.length > 1 ? 's' : '');
-  } else {
-    toolbar.style.display = 'none';
+  function closeAnularModal() {
+    document.getElementById('modal-anular-bulk').style.display = 'none';
   }
-}
 
-if (chkAll) {
-  chkAll.addEventListener('change', function() {
-    document.querySelectorAll('.chk-pedido').forEach(function(c) { c.checked = chkAll.checked; });
-    updateBulkToolbar();
-  });
-}
-
-document.querySelectorAll('.chk-pedido').forEach(function(c) {
-  c.addEventListener('change', function() {
-    var all     = document.querySelectorAll('.chk-pedido');
+  function updateBulkToolbar() {
     var checked = document.querySelectorAll('.chk-pedido:checked');
-    if (chkAll) {
-      chkAll.indeterminate = (checked.length > 0 && checked.length < all.length);
-      chkAll.checked       = (checked.length === all.length && all.length > 0);
+    var toolbar  = document.getElementById('bulk-toolbar');
+    var countEl  = document.getElementById('bulk-count');
+    if (!toolbar) return;
+    if (checked.length > 0) {
+      toolbar.style.display = 'flex';
+      countEl.textContent = checked.length + ' seleccionado' + (checked.length > 1 ? 's' : '');
+    } else {
+      toolbar.style.display = 'none';
     }
-    updateBulkToolbar();
-  });
-});
+  }
 
-var btnDeselectAll = document.getElementById('btn-deselect-all');
-if (btnDeselectAll) {
-  btnDeselectAll.addEventListener('click', function() {
-    document.querySelectorAll('.chk-pedido').forEach(function(c) { c.checked = false; });
-    if (chkAll) { chkAll.checked = false; chkAll.indeterminate = false; }
-    updateBulkToolbar();
-  });
-}
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof initTableSearch === 'function') initTableSearch('search-pedidos', 'tabla-pedidos');
+    if (typeof initRowLinks    === 'function') initRowLinks('tabla-pedidos');
 
-var btnAnularSel = document.getElementById('btn-anular-seleccionados');
-if (btnAnularSel) {
-  btnAnularSel.addEventListener('click', function() {
-    var checked = document.querySelectorAll('.chk-pedido:checked');
-    if (!checked.length) return;
-    var ids = Array.from(checked).map(function(c) { return c.dataset.id; });
-    openAnularModal(
-      ids,
-      'Anular ' + ids.length + ' pedido' + (ids.length > 1 ? 's' : ''),
-      ids.length > 1
-        ? 'Se anularán los pedidos #' + ids.join(', #') + '. Los pedidos confirmados repondrán su stock.'
-        : 'Se anulará el pedido #' + ids[0] + '.'
-    );
-  });
-}
+    // ── Modal: cerrar ────────────────────────────────────────
+    var modalEl = document.getElementById('modal-anular-bulk');
+    document.getElementById('modal-anular-bulk-cancel').addEventListener('click', closeAnularModal);
+    if (modalEl) {
+      modalEl.addEventListener('click', function(e) { if (e.target === this) closeAnularModal(); });
+    }
 
-// ── Anular todos los abiertos ───────────────────────────────────
-var btnAnularTodos = document.getElementById('btn-anular-todos');
-if (btnAnularTodos) {
-  btnAnularTodos.addEventListener('click', function() {
-    var ids = JSON.parse(this.dataset.ids || '[]');
-    if (!ids.length) return;
-    openAnularModal(
-      ids,
-      'Anular todos los abiertos (' + ids.length + ')',
-      'Se anularán los ' + ids.length + ' pedidos abiertos. Esta acción no se puede deshacer.'
-    );
+    // ── Modal: confirmar ─────────────────────────────────────
+    document.getElementById('modal-anular-bulk-confirm').addEventListener('click', function() {
+      var motivo = document.getElementById('modal-anular-bulk-motivo').value.trim();
+      var errorEl = document.getElementById('modal-anular-bulk-error');
+      if (!motivo) { errorEl.style.display = 'block'; return; }
+      errorEl.style.display = 'none';
+      this.disabled = true;
+      this.textContent = 'Anulando…';
+
+      var fd = new FormData();
+      fd.append('motivo', motivo);
+      var url;
+      if (_anularIds.length > 1) {
+        url = 'index.php?page=pedido_anular_seleccionados';
+        _anularIds.forEach(function(id) { fd.append('ids[]', id); });
+      } else {
+        url = 'index.php?page=pedido_anular';
+        fd.append('pedido_id', _anularIds[0]);
+      }
+
+      fetch(url, { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.ok) {
+            window.location.href = data.redirect || 'index.php?page=pedidos';
+          } else {
+            alert('Error: ' + (data.msg || 'No se pudo anular.'));
+            document.getElementById('modal-anular-bulk-confirm').disabled = false;
+            document.getElementById('modal-anular-bulk-confirm').textContent = 'Confirmar anulación';
+          }
+        })
+        .catch(function() {
+          alert('Error de conexión.');
+          document.getElementById('modal-anular-bulk-confirm').disabled = false;
+          document.getElementById('modal-anular-bulk-confirm').textContent = 'Confirmar anulación';
+        });
+    });
+
+    // ── Checkbox "seleccionar todos" ─────────────────────────
+    var chkAll = document.getElementById('chk-all');
+    if (chkAll) {
+      chkAll.addEventListener('change', function() {
+        document.querySelectorAll('.chk-pedido').forEach(function(c) { c.checked = chkAll.checked; });
+        updateBulkToolbar();
+      });
+    }
+
+    // ── Checkboxes individuales ──────────────────────────────
+    document.querySelectorAll('.chk-pedido').forEach(function(c) {
+      c.addEventListener('change', function() {
+        var all     = document.querySelectorAll('.chk-pedido');
+        var checked = document.querySelectorAll('.chk-pedido:checked');
+        if (chkAll) {
+          chkAll.indeterminate = (checked.length > 0 && checked.length < all.length);
+          chkAll.checked       = (checked.length === all.length && all.length > 0);
+        }
+        updateBulkToolbar();
+      });
+    });
+
+    // ── Deseleccionar todo ────────────────────────────────────
+    var btnDeselectAll = document.getElementById('btn-deselect-all');
+    if (btnDeselectAll) {
+      btnDeselectAll.addEventListener('click', function() {
+        document.querySelectorAll('.chk-pedido').forEach(function(c) { c.checked = false; });
+        if (chkAll) { chkAll.checked = false; chkAll.indeterminate = false; }
+        updateBulkToolbar();
+      });
+    }
+
+    // ── Anular seleccionados ──────────────────────────────────
+    var btnAnularSel = document.getElementById('btn-anular-seleccionados');
+    if (btnAnularSel) {
+      btnAnularSel.addEventListener('click', function() {
+        var checked = document.querySelectorAll('.chk-pedido:checked');
+        if (!checked.length) return;
+        var ids = Array.from(checked).map(function(c) { return c.dataset.id; });
+        openAnularModal(
+          ids,
+          'Anular ' + ids.length + ' pedido' + (ids.length > 1 ? 's' : ''),
+          ids.length > 1
+            ? 'Se anularán los pedidos #' + ids.join(', #') + '. Los pedidos confirmados repondrán su stock.'
+            : 'Se anulará el pedido #' + ids[0] + '.'
+        );
+      });
+    }
+
+    // ── Anular todos los abiertos ─────────────────────────────
+    var btnAnularTodos = document.getElementById('btn-anular-todos');
+    if (btnAnularTodos) {
+      btnAnularTodos.addEventListener('click', function() {
+        var ids = JSON.parse(this.dataset.ids || '[]');
+        if (!ids.length) return;
+        openAnularModal(
+          ids,
+          'Anular todos los abiertos (' + ids.length + ')',
+          'Se anularán los ' + ids.length + ' pedidos abiertos. Esta acción no se puede deshacer.'
+        );
+      });
+    }
   });
-}
+})();
 </script>
+
+<?php require VIEW_PATH . '/layout/footer.php'; ?>
