@@ -273,9 +273,14 @@ class StockController {
         $tela    = $this->findTela($tela_id, $eid);
 
         $stmt = $this->db->prepare(
-            "SELECT * FROM variantes
-             WHERE tela_id = ? AND empresa_id = ?
-             ORDER BY descripcion"
+            "SELECT v.*,
+                    COUNT(r.id)                                       AS total_rollos,
+                    COALESCE(AVG(CASE WHEN r.costo > 0 THEN r.costo END), 0) AS avg_costo_rollos
+             FROM variantes v
+             LEFT JOIN rollos r ON r.variante_id = v.id
+             WHERE v.tela_id = ? AND v.empresa_id = ?
+             GROUP BY v.id
+             ORDER BY v.descripcion"
         );
         $stmt->execute([$tela_id, $eid]);
         $variantes = $stmt->fetchAll();

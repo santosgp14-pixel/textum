@@ -23,9 +23,10 @@ require VIEW_PATH . '/layout/header.php';
           <th class="hide-mobile">Código barras</th>
           <th class="hide-mobile">Unidad</th>
           <th class="hide-mobile">Mínimo venta</th>
-          <th class="hide-mobile">Costo</th>
+          <th class="hide-mobile">Costo prom. rollos</th>
           <th class="hide-mobile">$ venta</th>
           <th>$ frac. +15%</th>
+          <th>Rollos</th>
           <th>Stock</th>
           <th>Acciones</th>
         </tr>
@@ -37,9 +38,12 @@ require VIEW_PATH . '/layout/header.php';
           <td class="hide-mobile"><code style="font-size:.82rem;background:#f3f4f6;padding:2px 6px;border-radius:4px"><?= htmlspecialchars($v['codigo_barras']) ?></code></td>
           <td class="hide-mobile"><?= $v['unidad'] ?></td>
           <td class="hide-mobile"><?= number_format($v['minimo_venta'], 3, ',', '.') ?> <?= $v['unidad'] ?></td>
-          <td class="hide-mobile text-muted">$ <?= number_format($v['costo'], 2, ',', '.') ?></td>
+          <td class="hide-mobile text-muted">$ <?= number_format($v['avg_costo_rollos'], 2, ',', '.') ?></td>
           <td class="hide-mobile font-bold">$ <?= number_format($v['precio'], 2, ',', '.') ?></td>
           <td class="font-bold">$ <?= number_format($v['precio_fraccionado'] ?? 0, 2, ',', '.') ?></td>
+          <td style="text-align:center">
+            <a href="index.php?page=rollos&variante_id=<?= $v['id'] ?>" class="btn btn-sm btn-outline"><?= (int)$v['total_rollos'] ?></a>
+          </td>
           <td>
             <span class="<?= $v['stock'] < 5 ? 'text-danger font-bold' : 'text-success font-bold' ?>">
               <?= number_format($v['stock'], 3, ',', '.') ?>
@@ -47,10 +51,7 @@ require VIEW_PATH . '/layout/header.php';
             <?= $v['unidad'] ?>
           </td>
           <td>
-            <div class="flex gap-2">
-              <a href="index.php?page=rollos&variante_id=<?= $v['id'] ?>" class="btn btn-sm btn-primary">Rollos</a>
-              <a href="index.php?page=variante_editar&id=<?= $v['id'] ?>" class="btn btn-sm btn-outline">Editar</a>
-            </div>
+            <a href="index.php?page=variante_editar&id=<?= $v['id'] ?>" class="btn btn-sm btn-outline">Editar</a>
           </td>
         </tr>
         <?php endforeach; ?>
