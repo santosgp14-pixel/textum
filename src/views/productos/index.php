@@ -53,6 +53,11 @@ function fNum(float $n, int $dec = 1): string {
       <div id="kpi-variantes" class="stat-value" style="font-size:1.3rem">—</div>
       <div class="stat-sub">colores / presentaciones</div>
     </div>
+    <div class="stat-card">
+      <div class="stat-label">Ancho</div>
+      <div id="kpi-ancho" class="stat-value" style="font-size:1.3rem">—</div>
+      <div class="stat-sub">metros</div>
+    </div>
   </div>
 </div>
 
@@ -101,6 +106,7 @@ function fNum(float $n, int $dec = 1): string {
             data-precio-rollo="<?= (float)$p['avg_precio_rollo'] ?>"
             data-precio-metro="<?= (float)$p['avg_precio_metro'] ?>"
             data-rinde="<?= (float)($p['rinde'] ?? 0) ?>"
+            data-ancho="<?= (float)($p['ancho'] ?? 0) ?>"
             data-costo="<?= (float)$p['avg_costo'] ?>"
             data-variantes="<?= (int)$p['total_variantes'] ?>">
           <td>
@@ -190,6 +196,7 @@ document.querySelectorAll('.prod-row').forEach(function(row) {
     document.getElementById('kpi-precio-rollo').textContent = parseFloat(d.precioRollo) > 0 ? fPesos(parseFloat(d.precioRollo)) : '—';
     document.getElementById('kpi-precio-metro').textContent = parseFloat(d.precioMetro) > 0 ? fPesos(parseFloat(d.precioMetro)) : '—';
     document.getElementById('kpi-rinde').textContent        = parseFloat(d.rinde) > 0 ? fNum(parseFloat(d.rinde), 2) : '—';
+    document.getElementById('kpi-ancho').textContent        = parseFloat(d.ancho) > 0 ? fNum(parseFloat(d.ancho), 2) + ' m' : '—';
     document.getElementById('kpi-costo').textContent        = parseFloat(d.costo) > 0 ? fPesos(parseFloat(d.costo)) : '—';
     document.getElementById('kpi-variantes').textContent    = d.variantes;
     document.getElementById('kpi-variantes-card').onclick   = function() {

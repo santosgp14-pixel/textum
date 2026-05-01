@@ -119,6 +119,14 @@ require VIEW_PATH . '/layout/header.php';
       </div>
 
       <div class="form-group">
+        <label class="form-label" for="ancho">Ancho <span class="text-muted text-xs">(metros)</span></label>
+        <input type="number" id="ancho" name="ancho" class="form-control"
+               value="<?= $tela['ancho'] ?? '' ?>"
+               step="0.001" min="0" placeholder="Ej: 1.500">
+        <div class="text-xs text-muted mt-1">Ancho de la tela. Ej: 1.500 m.</div>
+      </div>
+
+      <div class="form-group">
         <label class="form-label" for="descripcion">Descripción</label>
         <textarea id="descripcion" name="descripcion" class="form-control" rows="2"
                   placeholder="Descripción adicional..."><?= htmlspecialchars($tela['descripcion'] ?? '') ?></textarea>

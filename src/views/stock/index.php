@@ -42,6 +42,7 @@ $mostrarColCat = !empty($categorias) && !empty(array_filter($telas, fn($t) => !e
           <th>Producto</th>
           <?php if ($mostrarColCat): ?><th class="hide-mobile">Categoría</th><?php endif; ?>
           <th class="hide-mobile">Tipo</th>
+          <th class="hide-mobile">Ancho</th>
           <th class="hide-mobile">Colores</th>
           <th>Acciones</th>
         </tr>
@@ -73,6 +74,9 @@ $mostrarColCat = !empty($categorias) && !empty(array_filter($telas, fn($t) => !e
             <?php if (!empty($t['subcategoria'])): ?>
               <span class="badge badge-gray" style="margin-left:4px"><?= ucfirst($t['subcategoria']) ?></span>
             <?php endif; ?>
+          </td>
+          <td class="hide-mobile text-sm">
+            <?= !empty($t['ancho']) ? number_format((float)$t['ancho'], 2, ',', '') . ' m' : '<span class="text-muted">—</span>' ?>
           </td>
           <td class="hide-mobile">
             <span class="badge badge-blue"><?= (int)$t['variantes_activas'] ?> color<?= $t['variantes_activas'] != 1 ? 'es' : '' ?></span>

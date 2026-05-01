@@ -68,6 +68,7 @@ class StockController {
             'nombre'       => trim($_POST['nombre']       ?? ''),
             'descripcion'  => trim($_POST['descripcion']  ?? ''),
             'rinde'        => (float)($_POST['rinde']      ?? 0) ?: null,
+            'ancho'        => (float)($_POST['ancho']      ?? 0) ?: null,
             'tipo'         => in_array($_POST['tipo'] ?? '', ['punto','plano']) ? $_POST['tipo'] : null,
             'subcategoria' => in_array($_POST['subcategoria'] ?? '', ['atemporal','invierno','verano']) ? $_POST['subcategoria'] : null,
             'precio'       => (float)($_POST['precio']    ?? 0),
@@ -114,14 +115,14 @@ class StockController {
             } else {
                 $stmt = $this->db->prepare(
                     "INSERT INTO telas
-                     (empresa_id, nombre, descripcion, rinde,
+                     (empresa_id, nombre, descripcion, rinde, ancho,
                       tipo, subcategoria,
                       precio, unidad, minimo_venta, imagen_url)
-                     VALUES (?,?,?,?,?,?,?,?,?,?)"
+                     VALUES (?,?,?,?,?,?,?,?,?,?,?)"
                 );
                 $stmt->execute([
                     $eid,
-                    $data['nombre'], $data['descripcion'], $data['rinde'],
+                    $data['nombre'], $data['descripcion'], $data['rinde'], $data['ancho'],
                     $data['tipo'], $data['subcategoria'],
                     $data['precio'], $data['unidad'], $data['minimo_venta'], $imagenUrl,
                 ]);
