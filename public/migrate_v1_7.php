@@ -13,6 +13,17 @@ if ($secret !== 'textum_mig_v17_2026') {
 
 $url = getenv('MYSQL_URL') ?: ($_ENV['MYSQL_URL'] ?? ($_SERVER['MYSQL_URL'] ?? ''));
 
+// Debug: mostrar qué variables están disponibles (solo con key correcta)
+if (isset($_GET['debug'])) {
+    header('Content-Type: text/plain');
+    $keys = ['MYSQL_URL','DB_HOST','DB_PORT','DB_NAME','DB_USER','DB_PASS','DB_PASSWORD'];
+    foreach ($keys as $k) {
+        $v = getenv($k) ?: ($_ENV[$k] ?? ($_SERVER[$k] ?? ''));
+        echo "$k = " . ($v ? '[set]' : '[empty]') . "\n";
+    }
+    exit;
+}
+
 try {
     if ($url) {
         $p   = parse_url($url);
