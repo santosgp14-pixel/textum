@@ -335,8 +335,13 @@ class StockController {
             $data['precio_fraccionado'] = round($data['precio'] * 1.15, 2);
         }
 
-        if (empty($data['descripcion']) || empty($data['codigo_barras'])) {
-            $this->flashError('Descripción y código de barras son obligatorios.');
+        // Barcode es opcional: auto-generar si no se ingresó
+        if (empty($data['codigo_barras'])) {
+            $data['codigo_barras'] = 'VAR-' . $tid . '-' . time();
+        }
+
+        if (empty($data['descripcion'])) {
+            $this->flashError('La descripción es obligatoria.');
             header('Location: ' . BASE_URL . "/index.php?page=variantes&tela_id=$tid");
             exit;
         }
@@ -376,6 +381,28 @@ class StockController {
                     $data['minimo_venta'], $data['costo'], $data['precio_rollo'],
                     $data['precio'], $data['precio_fraccionado'], $data['stock']
                 ]);
+                $varId = (int)$this->db->lastInsertId();
+
+                // Rollos opcionales enviados desde el form
+                $rollos = $_POST['rollos'] ?? [];
+                if (is_array($rollos)) {
+                    $stockTotal = 0.0;
+                    foreach ($rollos as $r) {
+                        $metros   = (float)($r['metros']     ?? 0);
+                        $nroRollo = trim($r['nro_rollo']     ?? '');
+                        $rBarcode = trim($r['codigo_barras'] ?? '') ?: null;
+                        $rCosto   = (float)($r['costo']      ?? 0);
+                        if ($metros <= 0) continue;
+                        $this->db->prepare(
+                            "INSERT INTO rollos (variante_id, empresa_id, nro_rollo, codigo_barras, costo, metros)
+                             VALUES (?,?,?,?,?,?)"
+                        )->execute([$varId, $eid, $nroRollo, $rBarcode, $rCosto, $metros]);
+                        $stockTotal += $metros;
+                    }
+                    if ($stockTotal > 0) {
+                        $this->db->prepare("UPDATE variantes SET stock=stock+? WHERE id=?")->execute([$stockTotal, $varId]);
+                    }
+                }
             } catch (PDOException $e) {
                 if ($e->getCode() === '23000') {
                     $this->flashError('El código de barras ya existe para otra variante.');

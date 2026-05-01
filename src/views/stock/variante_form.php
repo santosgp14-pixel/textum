@@ -36,11 +36,11 @@ require VIEW_PATH . '/layout/header.php';
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="codigo_barras">Código de barras *</label>
+        <label class="form-label" for="codigo_barras">Código de barras <span class="text-muted text-xs">(opcional)</span></label>
         <input type="text" id="codigo_barras" name="codigo_barras" class="form-control barcode-input"
                value="<?= htmlspecialchars($variante['codigo_barras'] ?? '') ?>"
-               placeholder="Escanear o escribir código" required>
-        <div class="text-xs text-muted" style="margin-top:4px">Debe ser único para esta empresa.</div>
+               placeholder="Escanear o dejar vacío">
+        <div class="text-xs text-muted" style="margin-top:4px">Si se completa, debe ser único para esta empresa.</div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
@@ -130,8 +130,53 @@ require VIEW_PATH . '/layout/header.php';
         </button>
         <a href="index.php?page=variantes&tela_id=<?= $tela['id'] ?>" class="btn btn-outline">Cancelar</a>
       </div>
+
+      <?php if (!$esEdicion): ?>
+      <!-- ── Rollos iniciales ───────────────────────────── -->
+      <div class="section-title" style="font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gray-400);margin:24px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--gray-100)">Rollos iniciales <span class="text-xs font-normal text-muted">(opcional)</span></div>
+      <div id="rollos-container-v"></div>
+      <button type="button" class="btn btn-outline btn-sm" id="btn-add-rollo-v">＋ Agregar rollo</button>
+      <div class="text-xs text-muted mt-2">Podés agregar rollos ahora o hacerlo después desde el detalle de variante.</div>
+      <?php endif; ?>
     </form>
   </div>
 </div>
+
+<script>
+(function(){
+  const container = document.getElementById('rollos-container-v');
+  const btnAdd    = document.getElementById('btn-add-rollo-v');
+  if (!container || !btnAdd) return;
+
+  let ri = 0;
+  function addRollo() {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:end;margin-bottom:8px';
+    div.innerHTML = `
+      <div class="form-group" style="margin:0">
+        <label class="form-label" style="font-size:.8rem">N° rollo</label>
+        <input type="text" name="rollos[${ri}][nro_rollo]" class="form-control" placeholder="Ej: R001">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label" style="font-size:.8rem">Código barras</label>
+        <input type="text" name="rollos[${ri}][codigo_barras]" class="form-control" placeholder="Opcional">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label" style="font-size:.8rem">Costo ($)</label>
+        <input type="number" name="rollos[${ri}][costo]" class="form-control" step="0.01" min="0" placeholder="0.00">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label" style="font-size:.8rem">Metros / Kilos *</label>
+        <input type="number" name="rollos[${ri}][metros]" class="form-control" step="0.001" min="0.001" placeholder="0.000" required>
+      </div>
+      <button type="button" style="background:none;border:none;cursor:pointer;padding:4px 8px;font-size:1.1rem;color:var(--gray-400)" onclick="this.closest('div').remove()">✕</button>
+    `;
+    container.appendChild(div);
+    ri++;
+  }
+
+  btnAdd.addEventListener('click', addRollo);
+})();
+</script>
 
 <?php require VIEW_PATH . '/layout/footer.php'; ?>
