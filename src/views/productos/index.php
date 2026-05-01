@@ -48,6 +48,13 @@ function fNum(float $n, int $dec = 1): string {
     <div class="stat-value" style="font-size:1.15rem"><?= fPesos($totales['avg_costo']) ?></div>
     <div class="stat-sub">costo de compra</div>
   </div>
+  <?php if ($totales['costo_por_kilo'] > 0): ?>
+  <div class="stat-card">
+    <div class="stat-label">Costo prom. / kg</div>
+    <div class="stat-value" style="font-size:1.15rem"><?= fPesos($totales['costo_por_kilo']) ?></div>
+    <div class="stat-sub">total pagado ÷ kg en stock</div>
+  </div>
+  <?php endif; ?>
 </div>
 
 <!-- ── Detalle por producto ──────────────────────────────────── -->

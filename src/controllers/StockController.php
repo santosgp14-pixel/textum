@@ -201,7 +201,10 @@ class StockController {
             $this->db->commit();
         } catch (Throwable $e) {
             $this->db->rollBack();
-            $this->flashError('Error al guardar: ' . $e->getMessage());
+            $msg = ($e->getCode() === '23000')
+                ? 'Código de barras duplicado: dos rollos tienen el mismo código. Cada rollo debe tener un código único (ej: V1-001, V2-001).'
+                : 'Error al guardar: ' . $e->getMessage();
+            $this->flashError($msg);
             header('Location: ' . BASE_URL . '/index.php?page=stock');
             exit;
         }
@@ -338,18 +341,27 @@ class StockController {
         }
 
         if ($id > 0) {
-            $stmt = $this->db->prepare(
-                "UPDATE variantes
-                 SET descripcion=?, codigo_barras=?, unidad=?,
-                     minimo_venta=?, costo=?, precio_rollo=?, precio=?, precio_fraccionado=?, stock=?
-                 WHERE id=? AND empresa_id=?"
-            );
-            $stmt->execute([
-                $data['descripcion'], $data['codigo_barras'], $data['unidad'],
-                $data['minimo_venta'], $data['costo'], $data['precio_rollo'],
-                $data['precio'], $data['precio_fraccionado'], $data['stock'],
-                $id, $eid
-            ]);
+            try {
+                $stmt = $this->db->prepare(
+                    "UPDATE variantes
+                     SET descripcion=?, codigo_barras=?, unidad=?,
+                         minimo_venta=?, costo=?, precio_rollo=?, precio=?, precio_fraccionado=?, stock=?
+                     WHERE id=? AND empresa_id=?"
+                );
+                $stmt->execute([
+                    $data['descripcion'], $data['codigo_barras'], $data['unidad'],
+                    $data['minimo_venta'], $data['costo'], $data['precio_rollo'],
+                    $data['precio'], $data['precio_fraccionado'], $data['stock'],
+                    $id, $eid
+                ]);
+            } catch (PDOException $e) {
+                if ($e->getCode() === '23000') {
+                    $this->flashError('El código de barras ya está en uso por otra variante.');
+                    header('Location: ' . BASE_URL . "/index.php?page=variante_editar&id=$id");
+                    exit;
+                }
+                throw $e;
+            }
         } else {
             try {
                 $stmt = $this->db->prepare(

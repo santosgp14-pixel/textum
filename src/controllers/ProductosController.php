@@ -69,6 +69,7 @@ class ProductosController {
             'avg_precio_metro' => 0,
             'avg_rinde'        => 0,
             'avg_costo'        => 0,
+            'costo_por_kilo'   => 0,
         ];
 
         $cnt_rollo  = 0; $cnt_metro = 0; $cnt_rinde = 0; $cnt_costo = 0;
@@ -82,6 +83,21 @@ class ProductosController {
         if ($cnt_metro) $totales['avg_precio_metro'] /= $cnt_metro;
         if ($cnt_rinde) $totales['avg_rinde']        /= $cnt_rinde;
         if ($cnt_costo) $totales['avg_costo']        /= $cnt_costo;
+
+        // Costo promedio por kilo = total pagado (suma costos rollos) / total kilos en stock
+        if ($hasCostoRollo && $totales['stock_kilos'] > 0) {
+            $stmtCosto = $this->db->prepare(
+                "SELECT COALESCE(SUM(r.costo), 0)
+                 FROM rollos r
+                 JOIN variantes v ON v.id = r.variante_id
+                 WHERE r.empresa_id = ? AND v.activa = 1 AND v.unidad = 'kilo'"
+            );
+            $stmtCosto->execute([$eid]);
+            $totalPagado = (float)$stmtCosto->fetchColumn();
+            if ($totalPagado > 0) {
+                $totales['costo_por_kilo'] = $totalPagado / $totales['stock_kilos'];
+            }
+        }
 
         $pageTitle   = 'Productos';
         $currentPage = 'productos';

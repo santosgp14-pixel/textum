@@ -3,10 +3,12 @@ $esEdicion   = !empty($variante);
 $pageTitle   = $esEdicion ? 'Editar Variante' : 'Nueva Variante';
 $currentPage = 'stock';
 // Helper: muestra precio sin ceros decimales innecesarios (7000 no 7000.00)
-function fmtPrecioVal(?float $v, float $default = 0): string {
-    $n = $v ?? $default;
-    $s = rtrim(rtrim(number_format($n, 2, '.', ''), '0'), '.');
-    return $s === '' ? '0' : $s;
+if (!function_exists('fmtPrecioVal')) {
+    function fmtPrecioVal(?float $v, float $default = 0): string {
+        $n = $v ?? $default;
+        $s = rtrim(rtrim(number_format($n, 2, '.', ''), '0'), '.');
+        return $s === '' ? '0' : $s;
+    }
 }
 require VIEW_PATH . '/layout/header.php';
 ?>

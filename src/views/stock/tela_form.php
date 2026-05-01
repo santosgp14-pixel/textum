@@ -627,6 +627,26 @@ require VIEW_PATH . '/layout/header.php';
 
   btnCloseScan?.addEventListener('click', stopScanner);
   scanModal?.addEventListener('click', e => { if (e.target === scanModal) stopScanner(); });
+
+  // ── Validar barcodes únicos antes de enviar ───────────────
+  document.getElementById('form-producto')?.addEventListener('submit', function(e) {
+    if (!container) return; // solo aplica al form de nueva tela
+    const barcodes = [];
+    const duplicates = [];
+    container.querySelectorAll('input[name*="[codigo_barras]"]').forEach(inp => {
+      const val = inp.value.trim();
+      if (!val) return;
+      if (barcodes.includes(val)) {
+        if (!duplicates.includes(val)) duplicates.push(val);
+      } else {
+        barcodes.push(val);
+      }
+    });
+    if (duplicates.length > 0) {
+      e.preventDefault();
+      alert('Códigos de barras duplicados en los rollos: ' + duplicates.join(', ') + '\n\nCada rollo debe tener un código único aunque sea de variantes distintas.');
+    }
+  });
 })();
 </script>
 
