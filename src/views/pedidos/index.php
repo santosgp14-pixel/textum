@@ -142,15 +142,99 @@ $filtroEstado  = $_GET['estado'] ?? '';
 </div>
 
 <?php require VIEW_PATH . '/layout/footer.php'; ?>
+
+<!-- Modal de confirmación de anulación -->
+<div id="modal-anular-bulk" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.45);align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:28px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.25);margin:16px">
+    <h3 style="margin:0 0 6px;font-size:1.1rem;font-weight:700" id="modal-anular-bulk-title">Anular pedidos</h3>
+    <p id="modal-anular-bulk-desc" style="margin:0 0 16px;color:#6b7280;font-size:.9rem"></p>
+    <label style="display:block;font-size:.85rem;font-weight:600;margin-bottom:6px;color:#374151">Motivo de anulación <span style="color:#ef4444">*</span></label>
+    <textarea id="modal-anular-bulk-motivo" rows="3" placeholder="Ej: Error de carga, duplicado…"
+      style="width:100%;box-sizing:border-box;border:1px solid #d1d5db;border-radius:8px;padding:10px;font-size:.9rem;resize:vertical;font-family:inherit"></textarea>
+    <p id="modal-anular-bulk-error" style="display:none;color:#ef4444;font-size:.82rem;margin:6px 0 0">Ingresá un motivo para continuar.</p>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+      <button id="modal-anular-bulk-cancel" class="btn btn-outline btn-sm">Cancelar</button>
+      <button id="modal-anular-bulk-confirm" class="btn btn-danger btn-sm">Confirmar anulación</button>
+    </div>
+  </div>
+</div>
+
 <script>
 initTableSearch('search-pedidos', 'tabla-pedidos');
 initRowLinks('tabla-pedidos');
 
+// ── Modal de anulación ────────────────────────────────────────────
+var _anularIds    = [];
+var _anularMulti  = false; // true = masivo (ids[]), false = individual (pedido_id)
+
+function openAnularModal(ids, titulo, desc) {
+  _anularIds   = ids;
+  _anularMulti = ids.length > 1 || (ids.length === 1 && Array.isArray(ids));
+  document.getElementById('modal-anular-bulk-title').textContent = titulo;
+  document.getElementById('modal-anular-bulk-desc').textContent  = desc;
+  document.getElementById('modal-anular-bulk-motivo').value      = '';
+  document.getElementById('modal-anular-bulk-error').style.display = 'none';
+  document.getElementById('modal-anular-bulk-confirm').disabled  = false;
+  document.getElementById('modal-anular-bulk-confirm').textContent = 'Confirmar anulación';
+  var m = document.getElementById('modal-anular-bulk');
+  m.style.display = 'flex';
+  setTimeout(function() { document.getElementById('modal-anular-bulk-motivo').focus(); }, 80);
+}
+
+function closeAnularModal() {
+  document.getElementById('modal-anular-bulk').style.display = 'none';
+}
+
+document.getElementById('modal-anular-bulk-cancel').addEventListener('click', closeAnularModal);
+document.getElementById('modal-anular-bulk').addEventListener('click', function(e) {
+  if (e.target === this) closeAnularModal();
+});
+
+document.getElementById('modal-anular-bulk-confirm').addEventListener('click', function() {
+  var motivo = document.getElementById('modal-anular-bulk-motivo').value.trim();
+  var errorEl = document.getElementById('modal-anular-bulk-error');
+  if (!motivo) { errorEl.style.display = 'block'; return; }
+  errorEl.style.display = 'none';
+  this.disabled = true;
+  this.textContent = 'Anulando…';
+
+  var fd = new FormData();
+  fd.append('motivo', motivo);
+
+  var url, isBulk = _anularIds.length > 1;
+  if (isBulk) {
+    url = 'index.php?page=pedido_anular_seleccionados';
+    _anularIds.forEach(function(id) { fd.append('ids[]', id); });
+  } else {
+    url = 'index.php?page=pedido_anular';
+    fd.append('pedido_id', _anularIds[0]);
+  }
+
+  fetch(url, { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        window.location.href = data.redirect || 'index.php?page=pedidos';
+      } else {
+        alert('Error: ' + (data.msg || 'No se pudo anular.'));
+        document.getElementById('modal-anular-bulk-confirm').disabled = false;
+        document.getElementById('modal-anular-bulk-confirm').textContent = 'Confirmar anulación';
+      }
+    })
+    .catch(function() {
+      alert('Error de conexión.');
+      document.getElementById('modal-anular-bulk-confirm').disabled = false;
+      document.getElementById('modal-anular-bulk-confirm').textContent = 'Confirmar anulación';
+    });
+});
+
 // ── Selección múltiple ──────────────────────────────────────────
+var chkAll = document.getElementById('chk-all');
+
 function updateBulkToolbar() {
   var checked = document.querySelectorAll('.chk-pedido:checked');
-  var toolbar = document.getElementById('bulk-toolbar');
-  var countEl = document.getElementById('bulk-count');
+  var toolbar  = document.getElementById('bulk-toolbar');
+  var countEl  = document.getElementById('bulk-count');
   if (checked.length > 0) {
     toolbar.style.display = 'flex';
     countEl.textContent = checked.length + ' seleccionado' + (checked.length > 1 ? 's' : '');
@@ -159,76 +243,69 @@ function updateBulkToolbar() {
   }
 }
 
-document.getElementById('chk-all').addEventListener('change', function() {
-  document.querySelectorAll('.chk-pedido').forEach(function(c) { c.checked = this.checked; }, this);
-  updateBulkToolbar();
-});
+if (chkAll) {
+  chkAll.addEventListener('change', function() {
+    document.querySelectorAll('.chk-pedido').forEach(function(c) { c.checked = chkAll.checked; });
+    updateBulkToolbar();
+  });
+}
 
 document.querySelectorAll('.chk-pedido').forEach(function(c) {
   c.addEventListener('change', function() {
-    var all = document.querySelectorAll('.chk-pedido');
+    var all     = document.querySelectorAll('.chk-pedido');
     var checked = document.querySelectorAll('.chk-pedido:checked');
-    document.getElementById('chk-all').indeterminate = (checked.length > 0 && checked.length < all.length);
-    document.getElementById('chk-all').checked = (checked.length === all.length);
+    if (chkAll) {
+      chkAll.indeterminate = (checked.length > 0 && checked.length < all.length);
+      chkAll.checked       = (checked.length === all.length && all.length > 0);
+    }
     updateBulkToolbar();
   });
 });
 
-document.getElementById('btn-deselect-all').addEventListener('click', function() {
-  document.querySelectorAll('.chk-pedido').forEach(function(c) { c.checked = false; });
-  document.getElementById('chk-all').checked = false;
-  document.getElementById('chk-all').indeterminate = false;
-  updateBulkToolbar();
-});
+var btnDeselectAll = document.getElementById('btn-deselect-all');
+if (btnDeselectAll) {
+  btnDeselectAll.addEventListener('click', function() {
+    document.querySelectorAll('.chk-pedido').forEach(function(c) { c.checked = false; });
+    if (chkAll) { chkAll.checked = false; chkAll.indeterminate = false; }
+    updateBulkToolbar();
+  });
+}
 
-document.getElementById('btn-anular-seleccionados').addEventListener('click', function() {
-  var checked = document.querySelectorAll('.chk-pedido:checked');
-  if (!checked.length) return;
-  var ids = Array.from(checked).map(function(c) { return c.dataset.id; });
-  var motivo = prompt('Motivo de anulación para los ' + ids.length + ' pedidos seleccionados:');
-  if (!motivo || !motivo.trim()) return;
-  document.getElementById('btn-anular-seleccionados').disabled = true;
-  document.getElementById('btn-anular-seleccionados').textContent = 'Anulando...';
-  var fd = new FormData();
-  ids.forEach(function(id) { fd.append('ids[]', id); });
-  fd.append('motivo', motivo.trim());
-  fetch('index.php?page=pedido_anular_seleccionados', { method: 'POST', body: fd })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.ok) window.location.href = data.redirect;
-      else alert('Error: ' + data.msg);
-    });
-});
+var btnAnularSel = document.getElementById('btn-anular-seleccionados');
+if (btnAnularSel) {
+  btnAnularSel.addEventListener('click', function() {
+    var checked = document.querySelectorAll('.chk-pedido:checked');
+    if (!checked.length) return;
+    var ids = Array.from(checked).map(function(c) { return c.dataset.id; });
+    openAnularModal(
+      ids,
+      'Anular ' + ids.length + ' pedido' + (ids.length > 1 ? 's' : ''),
+      ids.length > 1
+        ? 'Se anularán los pedidos #' + ids.join(', #') + '. Los pedidos confirmados repondrán su stock.'
+        : 'Se anulará el pedido #' + ids[0] + '.'
+    );
+  });
+}
 
-// Anular pedido individual desde la lista
-document.querySelectorAll('.btn-anular-row').forEach(btn => {
+// ── Anular pedido individual desde la fila ──────────────────────
+document.querySelectorAll('.btn-anular-row').forEach(function(btn) {
   btn.addEventListener('click', function() {
-    const id = this.dataset.id;
-    const motivo = prompt('Motivo de anulación del pedido #' + id + ':');
-    if (!motivo || !motivo.trim()) return;
-    const fd = new FormData();
-    fd.append('pedido_id', id);
-    fd.append('motivo', motivo.trim());
-    fetch('index.php?page=pedido_anular', { method: 'POST', body: fd })
-      .then(r => r.json())
-      .then(data => {
-        if (data.ok) location.reload();
-        else alert('Error: ' + data.msg);
-      });
+    var id = this.dataset.id;
+    openAnularModal([id], 'Anular pedido #' + id, 'El pedido se marcará como anulado. Si estaba confirmado, se repondrá el stock.');
   });
 });
 
-// Anular todos los abiertos
-const btnAnularTodos = document.getElementById('btn-anular-todos');
+// ── Anular todos los abiertos ───────────────────────────────────
+var btnAnularTodos = document.getElementById('btn-anular-todos');
 if (btnAnularTodos) {
   btnAnularTodos.addEventListener('click', function() {
-    const n = this.dataset.count;
+    var n = this.dataset.count;
     if (!confirm('¿Anular los ' + n + ' pedidos abiertos? Esta acción no se puede deshacer.')) return;
     btnAnularTodos.disabled = true;
     btnAnularTodos.textContent = 'Anulando...';
     fetch('index.php?page=pedido_anular_todos', { method: 'POST' })
-      .then(r => r.json())
-      .then(data => {
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
         if (data.ok) window.location.href = data.redirect;
         else alert('Error al anular.');
       });
