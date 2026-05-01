@@ -59,11 +59,12 @@ $router->add('GET',  'categoria_editar',  fn() => (new StockController())->edita
 $router->add('POST', 'categoria_guardar', fn() => (new StockController())->guardarCategoria());
 
 // Stock - rollos (sub-variantes: rollos físicos individuales)
-$router->add('GET',  'rollos',          fn() => (new StockController())->rollos());
-$router->add('GET',  'rollo_nuevo',     fn() => (new StockController())->nuevoRollo());
-$router->add('GET',  'rollo_editar',    fn() => (new StockController())->editarRollo());
-$router->add('POST', 'rollo_guardar',   fn() => (new StockController())->guardarRollo());
-$router->add('POST', 'rollo_eliminar',  fn() => (new StockController())->eliminarRollo());
+$router->add('GET',  'rollos',              fn() => (new StockController())->rollos());
+$router->add('GET',  'rollo_nuevo',         fn() => (new StockController())->nuevoRollo());
+$router->add('GET',  'rollo_editar',        fn() => (new StockController())->editarRollo());
+$router->add('POST', 'rollo_guardar',       fn() => (new StockController())->guardarRollo());
+$router->add('POST', 'rollo_eliminar',      fn() => (new StockController())->eliminarRollo());
+$router->add('GET',  'variante_rollos',     fn() => (new StockController())->rollosPorVariante());
 
 // Pedidos
 $router->add('GET',  'pedidos',          fn() => (new PedidosController())->index());

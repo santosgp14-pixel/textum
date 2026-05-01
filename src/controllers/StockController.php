@@ -507,6 +507,28 @@ class StockController {
     }
 
     // ──────────────────────────────────────────────────────────
+    // ROLLOS disponibles por variante (AJAX — para selector en pedidos)
+    // ──────────────────────────────────────────────────────────
+
+    public function rollosPorVariante(): void {
+        Auth::require();
+        header('Content-Type: application/json');
+        $eid         = Auth::empresaId();
+        $variante_id = (int)($_GET['variante_id'] ?? 0);
+        if (!$variante_id) { echo json_encode(['ok' => false, 'rollos' => []]); exit; }
+
+        $stmt = $this->db->prepare(
+            "SELECT id, nro_rollo, metros, codigo_barras
+             FROM rollos
+             WHERE variante_id = ? AND empresa_id = ? AND estado = 'disponible'
+             ORDER BY nro_rollo, id"
+        );
+        $stmt->execute([$variante_id, $eid]);
+        echo json_encode(['ok' => true, 'rollos' => $stmt->fetchAll()]);
+        exit;
+    }
+
+    // ──────────────────────────────────────────────────────────
     // ROLLOS (rollos físicos individuales de cada variante)
     // ──────────────────────────────────────────────────────────
 

@@ -182,9 +182,17 @@ require VIEW_PATH . '/layout/header.php';
       <!-- Tipo de venta -->
       <div class="flex gap-1" style="margin-bottom:16px;flex-wrap:wrap">
         <button type="button" class="btn btn-sm btn-primary"  data-mai-tab="fraccionado">Frac. +15%</button>
-        <button type="button" class="btn btn-sm btn-outline"  data-mai-tab="metro">+50%</button>
+        <button type="button" class="btn btn-sm btn-outline"  data-mai-tab="metro">Por metro +50%</button>
         <button type="button" class="btn btn-sm btn-outline"  data-mai-tab="rollo">Por rollo</button>
         <button type="button" class="btn btn-sm btn-outline"  data-mai-tab="otro">Otro</button>
+      </div>
+      <!-- Selector de rollo -->
+      <div id="mai-rollo-wrap" class="form-group" style="display:none">
+        <label class="form-label">Rollo de origen</label>
+        <select id="mai-rollo-select" class="form-control">
+          <option value="">— Sin especificar —</option>
+        </select>
+        <div id="mai-rollo-hint" class="text-xs text-muted mt-1"></div>
       </div>
       <!-- Cantidad -->
       <div class="form-group">

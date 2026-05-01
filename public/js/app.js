@@ -592,26 +592,79 @@ if (pedidoForm) {
   }
 
   // ── Modal: configurar venta de ítem ─────────────────────────
-  const modalAI     = document.getElementById('modal-add-item');
-  const btnMaiClose = document.getElementById('btn-mai-close');
-  const btnMaiAdd   = document.getElementById('btn-mai-agregar');
-  const mAIqty      = document.getElementById('mai-qty');
-  const mAIprecio   = document.getElementById('mai-precio');
-  let mAIvar = null, _mAIrollo = null;
+  const modalAI       = document.getElementById('modal-add-item');
+  const btnMaiClose   = document.getElementById('btn-mai-close');
+  const btnMaiAdd     = document.getElementById('btn-mai-agregar');
+  const mAIqty        = document.getElementById('mai-qty');
+  const mAIprecio     = document.getElementById('mai-precio');
+  const mAIrolloWrap  = document.getElementById('mai-rollo-wrap');
+  const mAIrolloSel   = document.getElementById('mai-rollo-select');
+  const mAIrolloHint  = document.getElementById('mai-rollo-hint');
+  let mAIvar = null, _mAIrollo = null, _mAIrollosDisp = [];
+
+  function loadRollosModal(varianteId) {
+    if (!mAIrolloWrap) return;
+    mAIrolloSel.innerHTML = '<option value="">— Sin especificar —</option>';
+    mAIrolloHint.textContent = 'Cargando rollos...';
+    mAIrolloWrap.style.display = '';
+    fetch(`index.php?page=variante_rollos&variante_id=${varianteId}`)
+      .then(r => r.json())
+      .then(data => {
+        _mAIrollosDisp = data.rollos || [];
+        mAIrolloHint.textContent = '';
+        if (!_mAIrollosDisp.length) {
+          mAIrolloHint.textContent = 'Sin rollos registrados — el stock se descontará en general.';
+          return;
+        }
+        _mAIrollosDisp.forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r.id;
+          opt.textContent = `Rollo ${r.nro_rollo || '#' + r.id}  (${parseFloat(r.metros).toLocaleString('es-AR', {minimumFractionDigits:2,maximumFractionDigits:2})} m)`;
+          opt.dataset.metros = r.metros;
+          opt.dataset.nro    = r.nro_rollo || '';
+          mAIrolloSel.appendChild(opt);
+        });
+        // Si había un rollo preseleccionado (por barcode), seleccionarlo
+        if (_mAIrollo?.id) {
+          mAIrolloSel.value = _mAIrollo.id;
+          onRolloSelectChange();
+        }
+      })
+      .catch(() => { mAIrolloHint.textContent = ''; });
+  }
+
+  function onRolloSelectChange() {
+    const selId = parseInt(mAIrolloSel.value);
+    if (!selId) { _mAIrollo = null; return; }
+    const r = _mAIrollosDisp.find(x => x.id === selId);
+    if (!r) return;
+    _mAIrollo = r;
+    // Si el tab activo es "rollo", actualizar cantidad con metros del rollo
+    const activeTab = document.querySelector('[data-mai-tab].btn-primary')?.dataset?.maiTab;
+    if (activeTab === 'rollo') {
+      mAIqty.value = parseFloat(r.metros).toFixed(3);
+      recalcMaiSub();
+    }
+  }
+
+  mAIrolloSel?.addEventListener('change', onRolloSelectChange);
 
   function openAddItemModal(v, rollo = null) {
-    mAIvar = v; _mAIrollo = rollo;
+    mAIvar = v; _mAIrollo = rollo; _mAIrollosDisp = [];
     document.getElementById('mai-nombre').textContent = `${v.tela_nombre} — ${v.descripcion}`;
     document.getElementById('mai-stock').textContent  = `📦 Stock: ${formatQty(v.stock, v.unidad)}  ·  ${formatPesos(v.precio)} / ${v.unidad}`;
     document.getElementById('mai-unidad').textContent = v.unidad;
     setMaiTab(rollo ? 'rollo' : 'fraccionado', rollo);
+    loadRollosModal(v.id);
     modalAI?.classList.add('show');
     setTimeout(() => mAIqty?.focus(), 120);
   }
 
   function closeMaiModal() {
     modalAI?.classList.remove('show');
-    mAIvar = null; varianteActual = null;
+    mAIvar = null; varianteActual = null; _mAIrollo = null; _mAIrollosDisp = [];
+    if (mAIrolloSel) mAIrolloSel.innerHTML = '<option value="">— Sin especificar —</option>';
+    if (mAIrolloWrap) mAIrolloWrap.style.display = 'none';
     barcodeInput.value = '';
     cerrarDropdown();
     clearBarcodeError();
@@ -639,13 +692,16 @@ if (pedidoForm) {
         `Precio base × 1.50 — Mínimo: ${formatQty(mAIvar.minimo_venta, mAIvar.unidad)}`;
     } else if (tab === 'rollo') {
       const r = _mAIrollo;
-      mAIqty.value = r ? r.metros : '';
+      // Si hay un rollo seleccionado en el dropdown, usarlo
+      const selId = parseInt(mAIrolloSel?.value);
+      const rSel  = selId ? (_mAIrollosDisp.find(x => x.id === selId) ?? r) : r;
+      mAIqty.value = rSel ? parseFloat(rSel.metros).toFixed(3) : '';
       mAIqty.min   = '0.001';
       const pr = parseFloat(mAIvar.precio_rollo || 0);
       const m  = parseFloat(mAIqty.value) || 0;
       mAIprecio.value = pr > 0 && m ? (pr / m).toFixed(2) : parseFloat(mAIvar.precio).toFixed(2);
-      document.getElementById('mai-qty-hint').textContent = r
-        ? `Rollo ${r.nro_rollo || '#' + r.id}: ${formatQty(r.metros, mAIvar.unidad)}`
+      document.getElementById('mai-qty-hint').textContent = rSel
+        ? `Rollo ${rSel.nro_rollo || '#' + rSel.id}: ${formatQty(rSel.metros, mAIvar.unidad)}`
         : 'Ingresá los metros/kilos del rollo';
     } else {
       mAIqty.value    = '';
@@ -681,7 +737,9 @@ if (pedidoForm) {
     fd.append('variante_id', mAIvar.id);
     fd.append('cantidad',    cantidad);
     fd.append('precio_unit', precio);
-    if (_mAIrollo?.id) fd.append('rollo_id', _mAIrollo.id);
+    // Rollo: preferir el seleccionado en el dropdown, luego _mAIrollo (barcode)
+    const rolloIdSel = parseInt(mAIrolloSel?.value) || _mAIrollo?.id || 0;
+    if (rolloIdSel) fd.append('rollo_id', rolloIdSel);
     fetch('index.php?page=pedido_item_add', { method: 'POST', body: fd })
       .then(r => r.json())
       .then(data => {
