@@ -40,8 +40,13 @@ foreach ($categorias as $c) {
               <?= (int)$c['total_productos'] ?> productos
             </a>
           </td>
-          <td>
+          <td class="flex gap-1">
             <a href="index.php?page=categoria_editar&id=<?= $c['id'] ?>" class="btn btn-sm btn-outline">Editar</a>
+            <form method="POST" action="index.php?page=categoria_eliminar" style="display:inline"
+                  onsubmit="return confirm('¿Eliminar categoría \'<?= htmlspecialchars(addslashes($c['nombre'])) ?>\'? Los productos quedarán sin categoría.')">  
+              <input type="hidden" name="id" value="<?= $c['id'] ?>">
+              <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+            </form>
           </td>
         </tr>
         <?php foreach ($subMap[(int)$c['id']] ?? [] as $sc): ?>
@@ -56,8 +61,13 @@ foreach ($categorias as $c) {
               <?= (int)$sc['total_productos'] ?> productos
             </a>
           </td>
-          <td>
+          <td class="flex gap-1">
             <a href="index.php?page=categoria_editar&id=<?= $sc['id'] ?>" class="btn btn-sm btn-outline">Editar</a>
+            <form method="POST" action="index.php?page=categoria_eliminar" style="display:inline"
+                  onsubmit="return confirm('¿Eliminar categoría \'<?= htmlspecialchars(addslashes($sc['nombre'])) ?>\'? Los productos quedarán sin categoría.')">
+              <input type="hidden" name="id" value="<?= $sc['id'] ?>">
+              <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+            </form>
           </td>
         </tr>
         <?php endforeach; ?>

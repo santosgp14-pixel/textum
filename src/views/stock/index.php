@@ -39,7 +39,7 @@ $catFiltro = (int)($_GET['cat'] ?? 0);
       <thead>
         <tr>
           <th>Producto</th>
-          <th class="hide-mobile">Categoría</th>
+          <?php if (!empty($categorias)): ?><th class="hide-mobile">Categoría</th><?php endif; ?>
           <th class="hide-mobile">Tipo</th>
           <th class="hide-mobile">Colores</th>
           <th>Acciones</th>
@@ -54,6 +54,7 @@ $catFiltro = (int)($_GET['cat'] ?? 0);
               <div class="text-sm text-muted hide-mobile"><?= htmlspecialchars($t['descripcion']) ?></div>
             <?php endif; ?>
           </td>
+          <?php if (!empty($categorias)): ?>
           <td class="hide-mobile">
             <?php if ($t['categoria_nombre']): ?>
               <a href="index.php?page=stock&cat=<?= $t['categoria_id'] ?>" class="badge badge-blue">
@@ -63,6 +64,7 @@ $catFiltro = (int)($_GET['cat'] ?? 0);
               <span class="text-muted text-sm">—</span>
             <?php endif; ?>
           </td>
+          <?php endif; ?>
           <td class="hide-mobile text-sm">
             <?php if (!empty($t['tipo'])): ?>
               <span class="badge <?= $t['tipo'] === 'punto' ? 'badge-blue' : 'badge-gray' ?>"><?= ucfirst($t['tipo']) ?></span>

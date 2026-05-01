@@ -56,7 +56,8 @@ $router->add('GET',  'barcode_buscar',    fn() => (new StockController())->busca
 $router->add('GET',  'categorias',        fn() => (new StockController())->categorias());
 $router->add('GET',  'categoria_nueva',   fn() => (new StockController())->nuevaCategoria());
 $router->add('GET',  'categoria_editar',  fn() => (new StockController())->editarCategoria());
-$router->add('POST', 'categoria_guardar', fn() => (new StockController())->guardarCategoria());
+$router->add('POST', 'categoria_guardar',  fn() => (new StockController())->guardarCategoria());
+$router->add('POST', 'categoria_eliminar', fn() => (new StockController())->eliminarCategoria());
 
 // Stock - rollos (sub-variantes: rollos físicos individuales)
 $router->add('GET',  'rollos',              fn() => (new StockController())->rollos());

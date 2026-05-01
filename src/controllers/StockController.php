@@ -745,6 +745,19 @@ class StockController {
         require VIEW_PATH . '/stock/categoria_form.php';
     }
 
+    public function eliminarCategoria(): void {
+        Auth::require();
+        $eid = Auth::empresaId();
+        $id  = (int)($_POST['id'] ?? 0);
+        // Desasociar telas de esta categoría antes de eliminar
+        $this->db->prepare("UPDATE telas SET categoria_id=NULL WHERE categoria_id=? AND empresa_id=?")->execute([$id, $eid]);
+        // Soft-delete
+        $this->db->prepare("UPDATE categorias SET activa=0 WHERE id=? AND empresa_id=?")->execute([$id, $eid]);
+        $this->flashOk('Categoría eliminada.');
+        header('Location: ' . BASE_URL . '/index.php?page=categorias');
+        exit;
+    }
+
     public function guardarCategoria(): void {
         Auth::require();
         $eid    = Auth::empresaId();
