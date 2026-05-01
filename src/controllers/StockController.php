@@ -510,6 +510,18 @@ class StockController {
     // ROLLOS disponibles por variante (AJAX — para selector en pedidos)
     // ──────────────────────────────────────────────────────────
 
+    public function restaurarRollo(): void {
+        Auth::requireAdmin();
+        $eid         = Auth::empresaId();
+        $id          = (int)($_POST['id']          ?? 0);
+        $variante_id = (int)($_POST['variante_id'] ?? 0);
+        $this->db->prepare(
+            "UPDATE rollos SET estado = 'disponible' WHERE id = ? AND empresa_id = ?"
+        )->execute([$id, $eid]);
+        header('Location: ' . BASE_URL . "/index.php?page=rollos&variante_id=$variante_id");
+        exit;
+    }
+
     public function rollosPorVariante(): void {
         Auth::require();
         header('Content-Type: application/json');

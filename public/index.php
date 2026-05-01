@@ -65,6 +65,7 @@ $router->add('GET',  'rollo_nuevo',         fn() => (new StockController())->nue
 $router->add('GET',  'rollo_editar',        fn() => (new StockController())->editarRollo());
 $router->add('POST', 'rollo_guardar',       fn() => (new StockController())->guardarRollo());
 $router->add('POST', 'rollo_eliminar',      fn() => (new StockController())->eliminarRollo());
+$router->add('POST', 'rollo_restaurar',     fn() => (new StockController())->restaurarRollo());
 $router->add('GET',  'variante_rollos',     fn() => (new StockController())->rollosPorVariante());
 
 // Pedidos

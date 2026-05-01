@@ -84,6 +84,15 @@ require VIEW_PATH . '/layout/header.php';
           <td>
             <div class="flex gap-2">
               <a href="index.php?page=rollo_editar&id=<?= $r['id'] ?>" class="btn btn-sm btn-outline">Editar</a>
+              <?php if ($r['estado'] === 'agotado' && Auth::isAdmin()): ?>
+              <form method="POST" action="index.php?page=rollo_restaurar">
+                <input type="hidden" name="id" value="<?= $r['id'] ?>">
+                <input type="hidden" name="variante_id" value="<?= $variante['id'] ?>">
+                <button type="submit" class="btn btn-sm btn-outline" style="border-color:#10b981;color:#10b981">
+                  Restaurar
+                </button>
+              </form>
+              <?php endif; ?>
               <?php if (Auth::isAdmin()): ?>
               <form method="POST" action="index.php?page=rollo_eliminar"
                     data-confirm="¿Eliminar rollo <?= htmlspecialchars($r['nro_rollo'] ?: '#'.$r['id']) ?>? Se descontarán <?= number_format($r['metros'],3,',','.') ?> <?= $variante['unidad'] ?> del stock.">

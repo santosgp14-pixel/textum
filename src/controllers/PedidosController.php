@@ -390,6 +390,11 @@ class PedidosController {
                     $v = $stmt->fetch();
                     $new = $v['stock'] + $item['cantidad'];
                     $this->db->prepare("UPDATE variantes SET stock=? WHERE id=?")->execute([$new, $item['variante_id']]);
+                    if (!empty($item['rollo_id'])) {
+                        $this->db->prepare(
+                            "UPDATE rollos SET estado = 'disponible' WHERE id = ? AND empresa_id = ?"
+                        )->execute([$item['rollo_id'], $eid]);
+                    }
                     $this->db->prepare(
                         "INSERT INTO movimientos_stock (empresa_id,variante_id,pedido_id,usuario_id,tipo,cantidad,stock_antes,stock_despues)
                          VALUES (?,?,?,?,'anulacion_venta',?,?,?)"
@@ -483,6 +488,13 @@ class PedidosController {
                     "UPDATE variantes SET stock = ? WHERE id = ?"
                 )->execute([$stock_despues, $item['variante_id']]);
 
+                // Restaurar rollo a disponible si aplica
+                if (!empty($item['rollo_id'])) {
+                    $this->db->prepare(
+                        "UPDATE rollos SET estado = 'disponible' WHERE id = ? AND empresa_id = ?"
+                    )->execute([$item['rollo_id'], $eid]);
+                }
+
                 // Registrar movimiento de reposición
                 $this->db->prepare(
                     "INSERT INTO movimientos_stock
@@ -517,7 +529,7 @@ class PedidosController {
             echo json_encode([
                 'ok'       => true,
                 'msg'      => 'Pedido anulado y stock repuesto.',
-                'redirect' => BASE_URL . "/index.php?page=pedido_detalle&id=$pedido_id",
+                'redirect' => BASE_URL . "/index.php?page=pedidos",
             ]);
 
         } catch (Throwable $e) {

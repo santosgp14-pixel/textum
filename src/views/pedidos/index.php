@@ -130,7 +130,6 @@ $filtroEstado  = $_GET['estado'] ?? '';
           <td onclick="event.stopPropagation()" style="white-space:nowrap">
             <?php if ($p['estado'] === 'abierto'): ?>
               <a href="index.php?page=pedido_abierto&id=<?= $p['id'] ?>" class="btn btn-sm btn-primary">Continuar</a>
-              <button class="btn btn-sm btn-danger btn-anular-row" data-id="<?= $p['id'] ?>">Anular</button>
             <?php endif; ?>
           </td>
         </tr>
@@ -286,14 +285,6 @@ if (btnAnularSel) {
     );
   });
 }
-
-// ── Anular pedido individual desde la fila ──────────────────────
-document.querySelectorAll('.btn-anular-row').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    var id = this.dataset.id;
-    openAnularModal([id], 'Anular pedido #' + id, 'El pedido se marcará como anulado. Si estaba confirmado, se repondrá el stock.');
-  });
-});
 
 // ── Anular todos los abiertos ───────────────────────────────────
 var btnAnularTodos = document.getElementById('btn-anular-todos');
