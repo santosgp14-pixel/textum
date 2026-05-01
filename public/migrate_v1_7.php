@@ -19,7 +19,7 @@ if (isset($_GET['debug'])) {
     $keys = ['MYSQL_URL','DB_HOST','DB_PORT','DB_NAME','DB_USER','DB_PASS','DB_PASSWORD'];
     foreach ($keys as $k) {
         $v = getenv($k) ?: ($_ENV[$k] ?? ($_SERVER[$k] ?? ''));
-        echo "$k = " . ($v ? '[set]' : '[empty]') . "\n";
+        echo "$k = " . ($v ? '[set: ' . substr($v,0,4) . '...]' : '[empty]') . "\n";
     }
     exit;
 }
