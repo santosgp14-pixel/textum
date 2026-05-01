@@ -21,11 +21,19 @@ try {
         [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
     );
 
-    // migration v1.8
-    $pdo->exec("ALTER TABLE `telas` ADD COLUMN IF NOT EXISTS `ancho` DECIMAL(6,3) NULL DEFAULT NULL AFTER `rinde`");
+    // migration v1.8 — columna ancho en telas
+    $col = $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'telas' AND COLUMN_NAME = 'ancho'")->fetchColumn();
+    if (!$col) {
+        $pdo->exec("ALTER TABLE `telas` ADD COLUMN `ancho` DECIMAL(6,3) NULL DEFAULT NULL AFTER `rinde`");
+    }
 
-    // migration v1.9
-    $pdo->exec("ALTER TABLE `movimientos_stock` ADD COLUMN IF NOT EXISTS `rollo_id` INT UNSIGNED NULL DEFAULT NULL AFTER `pedido_id`");
+    // migration v1.9 — columna rollo_id en movimientos_stock
+    $col2 = $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'movimientos_stock' AND COLUMN_NAME = 'rollo_id'")->fetchColumn();
+    if (!$col2) {
+        $pdo->exec("ALTER TABLE `movimientos_stock` ADD COLUMN `rollo_id` INT UNSIGNED NULL DEFAULT NULL AFTER `pedido_id`");
+    }
     $pdo->exec("
         UPDATE rollos r
         INNER JOIN (
