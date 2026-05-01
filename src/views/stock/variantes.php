@@ -23,7 +23,7 @@ require VIEW_PATH . '/layout/header.php';
           <th class="hide-mobile">Código barras</th>
           <th class="hide-mobile">Unidad</th>
           <th class="hide-mobile">Mínimo venta</th>
-          <th class="hide-mobile">Costo prom. rollos</th>
+          <th class="hide-mobile">Costo prom.</th>
           <th class="hide-mobile">$ venta</th>
           <th>$ frac. +15%</th>
           <th>Rollos</th>
