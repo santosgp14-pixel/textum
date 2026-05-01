@@ -463,6 +463,7 @@ tbody td {
 }
 tbody tr { transition: background .1s; }
 tbody tr:hover { background: var(--gray-50); }
+tbody tr.row-selected { background: #eff6ff; outline: 2px solid var(--primary); outline-offset: -2px; }
 tbody tr:last-child td { border-bottom: none; }
 
 /* Badges */
