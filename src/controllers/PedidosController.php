@@ -303,12 +303,13 @@ class PedidosController {
                 }
 
                 // Registrar movimiento de stock
+                $rolloId = !empty($item['rollo_id']) ? (int)$item['rollo_id'] : null;
                 $this->db->prepare(
                     "INSERT INTO movimientos_stock
-                     (empresa_id, variante_id, pedido_id, usuario_id, tipo, cantidad, stock_antes, stock_despues)
-                     VALUES (?,?,?,?,'venta',?,?,?)"
+                     (empresa_id, variante_id, pedido_id, rollo_id, usuario_id, tipo, cantidad, stock_antes, stock_despues)
+                     VALUES (?,?,?,?,?,'venta',?,?,?)"
                 )->execute([
-                    $eid, $item['variante_id'], $pedido_id, $uid,
+                    $eid, $item['variante_id'], $pedido_id, $rolloId, $uid,
                     -$item['cantidad'], $stock_antes, $stock_despues
                 ]);
             }
@@ -412,12 +413,13 @@ class PedidosController {
                     )->execute([$item['cantidad'], $item['cantidad'], $item['rollo_id'], $eid]);
                 }
 
+                $rolloId = !empty($item['rollo_id']) ? (int)$item['rollo_id'] : null;
                 $this->db->prepare(
                     "INSERT INTO movimientos_stock
-                     (empresa_id, variante_id, pedido_id, usuario_id, tipo, cantidad, stock_antes, stock_despues)
-                     VALUES (?,?,?,?,'venta',?,?,?)"
+                     (empresa_id, variante_id, pedido_id, rollo_id, usuario_id, tipo, cantidad, stock_antes, stock_despues)
+                     VALUES (?,?,?,?,?,'venta',?,?,?)"
                 )->execute([
-                    $eid, $item['variante_id'], $pedido_id, $uid,
+                    $eid, $item['variante_id'], $pedido_id, $rolloId, $uid,
                     -$item['cantidad'], $stock_antes, $stock_despues
                 ]);
             }
