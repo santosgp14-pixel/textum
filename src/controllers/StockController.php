@@ -98,13 +98,13 @@ class StockController {
         try {
             if ($id > 0) {
                 $sql = "UPDATE telas
-                        SET nombre=?, descripcion=?, rinde=?,
+                        SET nombre=?, descripcion=?, rinde=?, ancho=?,
                             tipo=?, subcategoria=?,
                             precio=?, unidad=?, minimo_venta=?"
                       . ($imagenUrl !== null ? ', imagen_url=?' : '')
                       . " WHERE id=? AND empresa_id=?";
                 $params = [
-                    $data['nombre'], $data['descripcion'], $data['rinde'],
+                    $data['nombre'], $data['descripcion'], $data['rinde'], $data['ancho'],
                     $data['tipo'], $data['subcategoria'],
                     $data['precio'], $data['unidad'], $data['minimo_venta'],
                 ];
