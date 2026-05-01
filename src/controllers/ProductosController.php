@@ -53,12 +53,12 @@ class ProductosController {
         $stmt->execute([$eid]);
         $productos = $stmt->fetchAll();
 
-        // Precio por metro = precio de venta / rinde x 1.15
+        // Precio por metro = precio de venta / rinde x 1.50 (+50%)
         foreach ($productos as &$p) {
             $rinde  = (float)($p['rinde'] ?? 0);
             $precio = (float)($p['avg_precio_rollo'] ?? 0);
             $p['avg_precio_metro'] = ($rinde > 0 && $precio > 0)
-                ? round($precio / $rinde * 1.15, 2)
+                ? round($precio / $rinde * 1.50, 2)
                 : 0;
         }
         unset($p);

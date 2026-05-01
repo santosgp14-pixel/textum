@@ -36,7 +36,7 @@ function fNum(float $n, int $dec = 1): string {
   <div class="stat-card">
     <div class="stat-label">$ prom. x metro</div>
     <div class="stat-value" style="font-size:1.15rem"><?= fPesos($totales['avg_precio_metro']) ?></div>
-    <div class="stat-sub">precio ÷ rinde +15%</div>
+    <div class="stat-sub">precio ÷ rinde +50%</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">Rinde promedio</div>
