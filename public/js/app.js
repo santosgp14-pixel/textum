@@ -631,6 +631,12 @@ if (pedidoForm) {
       mAIprecio.value = (pFrac > 0 ? pFrac : parseFloat(mAIvar.precio)).toFixed(2);
       document.getElementById('mai-qty-hint').textContent =
         `Mínimo: ${formatQty(mAIvar.minimo_venta, mAIvar.unidad)}`;
+    } else if (tab === 'metro') {
+      mAIqty.value    = parseFloat(mAIvar.minimo_venta).toFixed(3);
+      mAIqty.min      = mAIvar.minimo_venta;
+      mAIprecio.value = (parseFloat(mAIvar.precio) * 1.50).toFixed(2);
+      document.getElementById('mai-qty-hint').textContent =
+        `Precio base × 1.50 — Mínimo: ${formatQty(mAIvar.minimo_venta, mAIvar.unidad)}`;
     } else if (tab === 'rollo') {
       const r = _mAIrollo;
       mAIqty.value = r ? r.metros : '';

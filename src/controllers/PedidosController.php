@@ -429,7 +429,7 @@ class PedidosController {
         header('Content-Type: application/json');
         $eid = Auth::empresaId();
         $stmt = $this->db->prepare(
-            "SELECT v.id, v.descripcion, v.unidad, v.precio, v.precio_rollo,
+            "SELECT v.id, v.descripcion, v.unidad, v.precio, v.precio_fraccionado, v.precio_rollo,
                     v.minimo_venta, v.stock,
                     t.id AS tela_id, t.nombre AS tela_nombre, t.imagen_url, t.tipo
              FROM variantes v
@@ -459,7 +459,7 @@ class PedidosController {
 
         $like = '%' . $q . '%';
         $stmt = $this->db->prepare(
-            "SELECT v.id, v.descripcion, v.unidad, v.precio, v.precio_rollo,
+            "SELECT v.id, v.descripcion, v.unidad, v.precio, v.precio_fraccionado, v.precio_rollo,
                     v.minimo_venta, v.stock, v.codigo_barras,
                     t.id AS tela_id, t.nombre AS tela_nombre, t.imagen_url, t.tipo
              FROM variantes v

@@ -181,7 +181,8 @@ require VIEW_PATH . '/layout/header.php';
       </div>
       <!-- Tipo de venta -->
       <div class="flex gap-1" style="margin-bottom:16px;flex-wrap:wrap">
-        <button type="button" class="btn btn-sm btn-primary"  data-mai-tab="fraccionado">Fraccionado</button>
+        <button type="button" class="btn btn-sm btn-primary"  data-mai-tab="fraccionado">Frac. +15%</button>
+        <button type="button" class="btn btn-sm btn-outline"  data-mai-tab="metro">+50%</button>
         <button type="button" class="btn btn-sm btn-outline"  data-mai-tab="rollo">Por rollo</button>
         <button type="button" class="btn btn-sm btn-outline"  data-mai-tab="otro">Otro</button>
       </div>
