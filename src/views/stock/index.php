@@ -43,7 +43,6 @@ $mostrarColCat = !empty($categorias) && !empty(array_filter($telas, fn($t) => !e
           <?php if ($mostrarColCat): ?><th class="hide-mobile">Categoría</th><?php endif; ?>
           <th class="hide-mobile">Tipo</th>
           <th class="hide-mobile">Rinde</th>
-          <th class="hide-mobile">Rinde</th>
           <th class="hide-mobile">Ancho</th>
           <th class="hide-mobile">Colores</th>
           <th>Acciones</th>
