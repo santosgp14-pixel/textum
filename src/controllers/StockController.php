@@ -272,16 +272,40 @@ class StockController {
         $eid     = Auth::empresaId();
         $tela    = $this->findTela($tela_id, $eid);
 
-        $stmt = $this->db->prepare(
-            "SELECT v.*,
-                    COUNT(r.id)                                       AS total_rollos,
-                    COALESCE(AVG(CASE WHEN r.costo > 0 THEN r.costo END), 0) AS avg_costo_rollos
-             FROM variantes v
-             LEFT JOIN rollos r ON r.variante_id = v.id
-             WHERE v.tela_id = ? AND v.empresa_id = ?
-             GROUP BY v.id
-             ORDER BY v.descripcion"
-        );
+        // Detectar si rollos.costo existe (migración v1.4)
+        if (!isset($_SESSION['_schema_caps'])) {
+            $_SESSION['_schema_caps'] = ['v14' => false, 'precioRollo' => false, 'costoRollo' => false];
+        }
+        if (!$_SESSION['_schema_caps']['costoRollo']) {
+            try { $this->db->query("SELECT costo FROM rollos LIMIT 0"); $_SESSION['_schema_caps']['costoRollo'] = true; } catch (PDOException $e) {}
+        }
+        $hasCostoRollo = $_SESSION['_schema_caps']['costoRollo'];
+
+        if ($hasCostoRollo) {
+            $stmt = $this->db->prepare(
+                "SELECT v.*,
+                        COUNT(r.id) AS total_rollos,
+                        COALESCE(
+                            NULLIF(SUM(r.costo * CASE WHEN r.costo > 0 THEN 1 ELSE 0 END) /
+                                   NULLIF(SUM(CASE WHEN r.costo > 0 THEN 1 ELSE 0 END), 0), 0),
+                            v.costo
+                        ) AS avg_costo_rollos
+                 FROM variantes v
+                 LEFT JOIN rollos r ON r.variante_id = v.id
+                 WHERE v.tela_id = ? AND v.empresa_id = ?
+                 GROUP BY v.id
+                 ORDER BY v.descripcion"
+            );
+        } else {
+            $stmt = $this->db->prepare(
+                "SELECT v.*, COUNT(r.id) AS total_rollos, v.costo AS avg_costo_rollos
+                 FROM variantes v
+                 LEFT JOIN rollos r ON r.variante_id = v.id
+                 WHERE v.tela_id = ? AND v.empresa_id = ?
+                 GROUP BY v.id
+                 ORDER BY v.descripcion"
+            );
+        }
         $stmt->execute([$tela_id, $eid]);
         $variantes = $stmt->fetchAll();
         require VIEW_PATH . '/stock/variantes.php';
