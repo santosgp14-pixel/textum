@@ -2,7 +2,8 @@
 $pageTitle   = 'Productos';
 $currentPage = 'stock';
 require VIEW_PATH . '/layout/header.php';
-$catFiltro = (int)($_GET['cat'] ?? 0);
+$catFiltro     = (int)($_GET['cat'] ?? 0);
+$mostrarColCat = !empty($categorias) && !empty(array_filter($telas, fn($t) => !empty($t['categoria_nombre'])));
 ?>
 
 <?php if (!empty($categorias)): ?>
@@ -39,7 +40,7 @@ $catFiltro = (int)($_GET['cat'] ?? 0);
       <thead>
         <tr>
           <th>Producto</th>
-          <?php if (!empty($categorias)): ?><th class="hide-mobile">Categoría</th><?php endif; ?>
+          <?php if ($mostrarColCat): ?><th class="hide-mobile">Categoría</th><?php endif; ?>
           <th class="hide-mobile">Tipo</th>
           <th class="hide-mobile">Colores</th>
           <th>Acciones</th>
@@ -54,7 +55,7 @@ $catFiltro = (int)($_GET['cat'] ?? 0);
               <div class="text-sm text-muted hide-mobile"><?= htmlspecialchars($t['descripcion']) ?></div>
             <?php endif; ?>
           </td>
-          <?php if (!empty($categorias)): ?>
+          <?php if ($mostrarColCat): ?>
           <td class="hide-mobile">
             <?php if ($t['categoria_nombre']): ?>
               <a href="index.php?page=stock&cat=<?= $t['categoria_id'] ?>" class="badge badge-blue">
@@ -70,7 +71,7 @@ $catFiltro = (int)($_GET['cat'] ?? 0);
               <span class="badge <?= $t['tipo'] === 'punto' ? 'badge-blue' : 'badge-gray' ?>"><?= ucfirst($t['tipo']) ?></span>
             <?php endif; ?>
             <?php if (!empty($t['subcategoria'])): ?>
-              <span class="text-xs text-muted" style="display:block;margin-top:2px"><?= htmlspecialchars($t['subcategoria']) ?></span>
+              <span class="badge badge-gray" style="margin-left:4px"><?= ucfirst($t['subcategoria']) ?></span>
             <?php endif; ?>
           </td>
           <td class="hide-mobile">
