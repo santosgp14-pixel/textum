@@ -32,11 +32,12 @@ try {
         $user = $p['user'] ?? '';
         $pass = isset($p['pass']) ? urldecode($p['pass']) : '';
     } else {
-        $host   = getenv('DB_HOST') ?: 'localhost';
-        $port   = getenv('DB_PORT') ?: '3306';
-        $dbname = getenv('DB_NAME') ?: '';
-        $user   = getenv('DB_USER') ?: '';
-        $pass   = getenv('DB_PASS') ?: '';
+        $e_get = fn($k) => getenv($k) ?: ($_ENV[$k] ?? ($_SERVER[$k] ?? ''));
+        $host   = $e_get('DB_HOST') ?: 'localhost';
+        $port   = $e_get('DB_PORT') ?: '3306';
+        $dbname = $e_get('DB_NAME') ?: '';
+        $user   = $e_get('DB_USER') ?: '';
+        $pass   = $e_get('DB_PASS') ?: '';
         $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
     }
     $pdo = new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
