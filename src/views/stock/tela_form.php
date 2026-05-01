@@ -507,13 +507,14 @@ require VIEW_PATH . '/layout/header.php';
                class="form-control" placeholder="Ej: R001">
       </div>
       <div class="form-group" style="margin:0">
-        <label class="form-label">Código de barras</label>
+        <label class="form-label">Código de barras <span style="font-weight:400;color:var(--gray-400)">(opcional)</span></label>
         <div style="display:flex;gap:6px;align-items:stretch">
           <input type="text" name="variantes[${varIdx}][rollos][${rolloIdx}][codigo_barras]"
-                 class="form-control barcode-input" placeholder="Escanear o escribir" style="flex:1">
+                 class="form-control barcode-input" placeholder="Dejar vacío si no tiene" style="flex:1">
           <button type="button" class="btn btn-outline btn-sm btn-scan-barcode"
                   title="Escanear con cámara" style="padding:0 10px;font-size:1.1rem">&#x1F4F7;</button>
         </div>
+        <div class="text-xs text-muted" style="margin-top:3px">El N° de rollo puede repetirse entre variantes. El barcode debe ser único si se ingresa.</div>
       </div>
       <div class="form-group" style="margin:0">
         <label class="form-label">Costo ($)</label>
