@@ -30,12 +30,6 @@ class ProductosController {
         $extraCols    = $migratedV14
             ? 't.tipo, t.rinde, t.unidad, t.imagen_url,'
             : "NULL AS tipo, NULL AS rinde, NULL AS unidad, NULL AS imagen_url,";
-        $colCosto = $hasCostoRollo
-            ? "COALESCE(AVG(CASE WHEN r.costo > 0 THEN r.costo END), 0)"
-            : "0";
-        $joinRollos = $hasCostoRollo
-            ? "LEFT JOIN rollos r ON r.variante_id = v.id"
-            : "";
         // Metros = kilos x rinde (punto) + metros directos (plano)
         $colStockMetros = $migratedV14
             ? "COALESCE(SUM(CASE WHEN v.unidad='kilo' THEN v.stock * COALESCE(t.rinde, 0) WHEN v.unidad='metro' THEN v.stock ELSE 0 END), 0)"
@@ -49,10 +43,9 @@ class ProductosController {
                 COALESCE(SUM(CASE WHEN v.unidad='kilo'  THEN v.stock ELSE 0 END), 0) AS stock_kilos,
                 $colStockMetros AS stock_metros,
                 COALESCE(AVG(CASE WHEN v.precio > 0 THEN v.precio END), 0) AS avg_precio_rollo,
-                $colCosto AS avg_costo
+                COALESCE(AVG(CASE WHEN v.costo > 0 THEN v.costo END), 0) AS avg_costo
              FROM telas t
              LEFT JOIN variantes v ON v.tela_id = t.id AND v.activa = 1
-             $joinRollos
              WHERE t.empresa_id = ? AND t.activa = 1
              GROUP BY t.id
              ORDER BY t.nombre"
@@ -94,18 +87,17 @@ class ProductosController {
         if ($cnt_rinde) $totales['avg_rinde']        /= $cnt_rinde;
         if ($cnt_costo) $totales['avg_costo']        /= $cnt_costo;
 
-        // Costo promedio por kilo = total pagado (suma costos rollos) / total kilos en stock
-        if ($hasCostoRollo && $totales['stock_kilos'] > 0) {
+        // Costo promedio por kilo = promedio ponderado de variantes.costo x stock
+        if ($totales['stock_kilos'] > 0) {
             $stmtCosto = $this->db->prepare(
-                "SELECT COALESCE(SUM(r.costo), 0)
-                 FROM rollos r
-                 JOIN variantes v ON v.id = r.variante_id
-                 WHERE r.empresa_id = ? AND v.activa = 1 AND v.unidad = 'kilo'"
+                "SELECT COALESCE(SUM(v.costo * v.stock) / NULLIF(SUM(v.stock), 0), 0)
+                 FROM variantes v
+                 WHERE v.empresa_id = ? AND v.activa = 1 AND v.unidad = 'kilo' AND v.costo > 0"
             );
             $stmtCosto->execute([$eid]);
-            $totalPagado = (float)$stmtCosto->fetchColumn();
-            if ($totalPagado > 0) {
-                $totales['costo_por_kilo'] = $totalPagado / $totales['stock_kilos'];
+            $costoPorKilo = (float)$stmtCosto->fetchColumn();
+            if ($costoPorKilo > 0) {
+                $totales['costo_por_kilo'] = $costoPorKilo;
             }
         }
 

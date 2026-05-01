@@ -24,8 +24,8 @@ require VIEW_PATH . '/layout/header.php';
           <th class="hide-mobile">Unidad</th>
           <th class="hide-mobile">Mínimo venta</th>
           <th class="hide-mobile">Costo</th>
-          <th class="hide-mobile">$ rollo</th>
-          <th>$ frac.</th>
+          <th class="hide-mobile">$ venta</th>
+          <th>$ frac. +15%</th>
           <th>Stock</th>
           <th>Acciones</th>
         </tr>
@@ -38,8 +38,8 @@ require VIEW_PATH . '/layout/header.php';
           <td class="hide-mobile"><?= $v['unidad'] ?></td>
           <td class="hide-mobile"><?= number_format($v['minimo_venta'], 3, ',', '.') ?> <?= $v['unidad'] ?></td>
           <td class="hide-mobile text-muted">$ <?= number_format($v['costo'], 2, ',', '.') ?></td>
-          <td class="hide-mobile">$ <?= number_format($v['precio_rollo'], 2, ',', '.') ?></td>
-          <td class="font-bold">$ <?= number_format($v['precio'], 2, ',', '.') ?></td>
+          <td class="hide-mobile font-bold">$ <?= number_format($v['precio'], 2, ',', '.') ?></td>
+          <td class="font-bold">$ <?= number_format($v['precio_fraccionado'] ?? 0, 2, ',', '.') ?></td>
           <td>
             <span class="<?= $v['stock'] < 5 ? 'text-danger font-bold' : 'text-success font-bold' ?>">
               <?= number_format($v['stock'], 3, ',', '.') ?>
