@@ -28,8 +28,8 @@ class ProductosController {
         $hasCostoRollo  = $_SESSION['_schema_caps']['costoRollo'];
 
         $extraCols    = $migratedV14
-            ? 't.tipo, t.rinde, t.unidad, t.imagen_url,'
-            : "NULL AS tipo, NULL AS rinde, NULL AS unidad, NULL AS imagen_url,";
+            ? 't.tipo, t.rinde, t.ancho, t.unidad, t.imagen_url,'
+            : "NULL AS tipo, NULL AS rinde, NULL AS ancho, NULL AS unidad, NULL AS imagen_url,";
         // Metros = kilos x rinde (punto) + metros directos (plano)
         $colStockMetros = $migratedV14
             ? "COALESCE(SUM(CASE WHEN v.unidad='kilo' THEN v.stock * COALESCE(t.rinde, 0) WHEN v.unidad='metro' THEN v.stock ELSE 0 END), 0)"
