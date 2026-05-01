@@ -4,8 +4,8 @@
  */
 'use strict';
 
-const STATIC_CACHE  = 'textum-static-v2';
-const PAGES_CACHE   = 'textum-pages-v2';
+const STATIC_CACHE  = 'textum-static-v3';
+const PAGES_CACHE   = 'textum-pages-v3';
 
 const STATIC_ASSETS = [
   './css/app.css',
