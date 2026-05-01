@@ -345,8 +345,26 @@ class PedidosController {
     }
 
     // ──────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────
     // ANULAR PEDIDO (solo admin, solo confirmados, transacción)
     // ──────────────────────────────────────────────────────────
+
+    public function anularTodosAbiertos(): void {
+        Auth::requireAdmin();
+        header('Content-Type: application/json');
+        $eid = Auth::empresaId();
+        $uid = Auth::userId();
+        $stmt = $this->db->prepare("SELECT id FROM pedidos WHERE empresa_id=? AND estado='abierto'");
+        $stmt->execute([$eid]);
+        $ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        foreach ($ids as $id) {
+            $this->db->prepare(
+                "UPDATE pedidos SET estado='anulado', anulado_por=?, motivo_anulacion='Anulación masiva de pedidos abiertos', anulado_at=NOW() WHERE id=?"
+            )->execute([$uid, $id]);
+        }
+        echo json_encode(['ok' => true, 'count' => count($ids), 'redirect' => BASE_URL . '/index.php?page=pedidos']);
+        exit;
+    }
 
     public function anular(): void {
         Auth::requireAdmin();

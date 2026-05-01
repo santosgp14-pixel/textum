@@ -15,6 +15,9 @@ require VIEW_PATH . '/layout/header.php';
     <span class="badge badge-<?= $pedido['estado'] ?>" style="font-size:.8rem;padding:4px 12px"><?= ucfirst($pedido['estado']) ?></span>
   </div>
   <div class="flex gap-2 flex-wrap">
+    <?php if ($pedido['estado'] === 'abierto'): ?>
+    <a href="index.php?page=pedido_abierto&id=<?= $pedido['id'] ?>" class="btn btn-sm btn-primary">Continuar pedido</a>
+    <?php endif; ?>
     <?php if ($pedido['estado'] === 'confirmado'): ?>
     <?php $reciboUrl = BASE_URL . '/index.php?page=recibo_pub&pedido=' . $pedido['id'] . '&t=' . urlencode($receiptToken); ?>
     <button type="button" class="btn btn-sm btn-outline" id="btn-copy-recibo" data-url="<?= htmlspecialchars($reciboUrl) ?>">
@@ -22,7 +25,7 @@ require VIEW_PATH . '/layout/header.php';
     </button>
     <a href="<?= htmlspecialchars($reciboUrl) ?>" target="_blank" class="btn btn-sm btn-outline">Ver recibo</a>
     <?php endif; ?>
-    <?php if ($pedido['estado'] === 'confirmado' && Auth::isAdmin()): ?>
+    <?php if (in_array($pedido['estado'], ['abierto','confirmado']) && Auth::isAdmin()): ?>
     <button id="btn-anular" class="btn btn-sm btn-danger" data-pedido-id="<?= $pedido['id'] ?>">Anular</button>
     <?php endif; ?>
   </div>
@@ -178,14 +181,16 @@ require VIEW_PATH . '/layout/header.php';
 
 </div>
 
-<?php if ($pedido['estado'] === 'confirmado' && Auth::isAdmin()): ?>
+<?php if (in_array($pedido['estado'], ['abierto','confirmado']) && Auth::isAdmin()): ?>
 <div class="modal" id="modal-anular">
   <div class="modal-backdrop"></div>
   <div class="modal-box">
     <h3 class="modal-title">Anular Pedido #<?= $pedido['id'] ?></h3>
-    <p class="text-sm text-muted" style="margin-bottom:20px">
-      Esta acción revertirá el stock y el ingreso registrado. El pedido quedará con estado "anulado" en el historial.
-    </p>
+    <?php if ($pedido['estado'] === 'abierto'): ?>
+    <p class="text-sm text-muted" style="margin-bottom:20px">El pedido se anulará. No se tocará el stock ya que no fue confirmado.</p>
+    <?php else: ?>
+    <p class="text-sm text-muted" style="margin-bottom:20px">Esta acción revertirá el stock y el ingreso registrado.</p>
+    <?php endif; ?>
     <div class="form-group">
       <label class="form-label" for="motivo-anulacion">Motivo de anulación <span style="color:var(--red-500)">*</span></label>
       <textarea id="motivo-anulacion" class="form-control" rows="3" placeholder="Ej: Error en la carga, devolución del cliente..."></textarea>
