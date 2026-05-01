@@ -32,6 +32,7 @@ require VIEW_PATH . '/layout/header.php';
       <tbody>
         <?php foreach ($clientes as $c): ?>
         <tr data-href="index.php?page=cliente_perfil&id=<?= $c['id'] ?>">
+          <td class="font-bold"><?= htmlspecialchars($c['nombre']) ?></td>
           <td class="text-sm hide-mobile"><?= htmlspecialchars($c['telefono'] ?: '—') ?></td>
           <td class="text-sm hide-mobile"><?= htmlspecialchars($c['email'] ?: '—') ?></td>
           <td class="hide-mobile"><?= (int)$c['total_pedidos'] ?></td>

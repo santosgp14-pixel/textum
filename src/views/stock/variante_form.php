@@ -38,10 +38,17 @@ require VIEW_PATH . '/layout/header.php';
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="form-group">
           <label class="form-label" for="unidad">Unidad de venta *</label>
+          <?php $esPunto = ($tela['tipo'] ?? '') === 'punto'; ?>
+          <?php if ($esPunto): ?>
+            <input type="hidden" name="unidad" value="kilo">
+            <input type="text" class="form-control" value="Kilo" disabled style="background:var(--gray-50,#f9fafb);color:var(--gray-500,#6b7280)">
+            <div class="text-xs text-muted mt-1">Los artículos tipo <strong>Punto</strong> se venden por kilo.</div>
+          <?php else: ?>
           <select id="unidad" name="unidad" class="form-control">
             <option value="metro" <?= ($variante['unidad'] ?? 'metro') === 'metro' ? 'selected' : '' ?>>Metro</option>
             <option value="kilo"  <?= ($variante['unidad'] ?? '') === 'kilo'  ? 'selected' : '' ?>>Kilo</option>
           </select>
+          <?php endif; ?>
         </div>
         <div class="form-group">
           <label class="form-label" for="minimo_venta">Mínimo de venta *</label>
@@ -51,7 +58,7 @@ require VIEW_PATH . '/layout/header.php';
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="form-group">
           <label class="form-label" for="costo">Costo ($)</label>
           <input type="number" id="costo" name="costo" class="form-control"
@@ -67,13 +74,34 @@ require VIEW_PATH . '/layout/header.php';
           <div class="text-xs text-muted" style="margin-top:4px">Venta rollo completo</div>
         </div>
         <div class="form-group">
-          <label class="form-label" for="precio">Precio fraccionado ($) *</label>
+          <label class="form-label" for="precio">Precio de venta ($) *</label>
           <input type="number" id="precio" name="precio" class="form-control"
                  value="<?= $variante['precio'] ?? '0.00' ?>"
                  step="0.01" min="0" required>
-          <div class="text-xs text-muted" style="margin-top:4px">Por <?= $variante['unidad'] ?? 'metro' ?> / kilo</div>
+          <div class="text-xs text-muted" style="margin-top:4px">Precio base por <?= $variante['unidad'] ?? 'metro' ?> / kilo</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="precio_fraccionado">Precio fraccionado ($)</label>
+          <input type="number" id="precio_fraccionado" name="precio_fraccionado" class="form-control"
+                 value="<?= $variante['precio_fraccionado'] ?? '0.00' ?>"
+                 step="0.01" min="0">
+          <div class="text-xs text-muted" style="margin-top:4px">
+            Venta fraccionada <span class="badge badge-blue" style="font-size:.7rem;vertical-align:middle">+15%</span>
+          </div>
         </div>
       </div>
+
+      <script>
+      (function(){
+        const precioEl = document.getElementById('precio');
+        const fracEl   = document.getElementById('precio_fraccionado');
+        if (!precioEl || !fracEl) return;
+        precioEl.addEventListener('input', function() {
+          const base = parseFloat(this.value) || 0;
+          if (base > 0) fracEl.value = (base * 1.15).toFixed(2);
+        });
+      })();
+      </script>
 
       <div class="form-group">
         <label class="form-label" for="stock">Stock inicial</label>

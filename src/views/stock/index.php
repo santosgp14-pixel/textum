@@ -78,6 +78,12 @@ $catFiltro = (int)($_GET['cat'] ?? 0);
             <div class="flex gap-2">
               <a href="index.php?page=variantes&tela_id=<?= $t['id'] ?>" class="btn btn-sm btn-primary">Ver variantes</a>
               <a href="index.php?page=tela_editar&id=<?= $t['id'] ?>"    class="btn btn-sm btn-outline">Editar</a>
+              <form method="POST" action="index.php?page=tela_eliminar"
+                    onsubmit="return confirm('¿Eliminar <?= addslashes(htmlspecialchars($t['nombre'])) ?>? Se desactivarán también sus variantes.')"
+                    style="display:inline">
+                <input type="hidden" name="id" value="<?= $t['id'] ?>">
+                <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+              </form>
             </div>
           </td>
         </tr>

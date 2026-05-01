@@ -43,6 +43,7 @@ $router->add('GET',  'stock',          fn() => (new StockController())->index())
 $router->add('GET',  'tela_nueva',     fn() => (new StockController())->nuevaTela());
 $router->add('GET',  'tela_editar',    fn() => (new StockController())->editarTela());
 $router->add('POST', 'tela_guardar',   fn() => (new StockController())->guardarTela());
+$router->add('POST', 'tela_eliminar',  fn() => (new StockController())->eliminarTela());
 
 // Stock - variantes
 $router->add('GET',  'variantes',         fn() => (new StockController())->variantes());

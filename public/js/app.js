@@ -627,7 +627,8 @@ if (pedidoForm) {
     if (tab === 'fraccionado') {
       mAIqty.value    = parseFloat(mAIvar.minimo_venta).toFixed(3);
       mAIqty.min      = mAIvar.minimo_venta;
-      mAIprecio.value = parseFloat(mAIvar.precio).toFixed(2);
+      const pFrac = parseFloat(mAIvar.precio_fraccionado || 0);
+      mAIprecio.value = (pFrac > 0 ? pFrac : parseFloat(mAIvar.precio)).toFixed(2);
       document.getElementById('mai-qty-hint').textContent =
         `Mínimo: ${formatQty(mAIvar.minimo_venta, mAIvar.unidad)}`;
     } else if (tab === 'rollo') {

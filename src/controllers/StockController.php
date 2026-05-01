@@ -133,10 +133,12 @@ class StockController {
 
                 if (!empty($variantes) && is_array($variantes)) {
                     foreach ($variantes as $vKey => $v) {
-                        $vDesc   = trim($v['descripcion'] ?? '');
-                        $vUnidad = in_array($v['unidad'] ?? '', ['metro','kilo','rollo'])
-                                   ? $v['unidad'] : $data['unidad'];
-                        $vPrecio = (float)($v['precio'] ?? $data['precio']);
+                        $vDesc      = trim($v['descripcion'] ?? '');
+                        $vUnidad    = in_array($v['unidad'] ?? '', ['metro','kilo','rollo'])
+                                      ? $v['unidad'] : $data['unidad'];
+                        $vPrecio    = (float)($v['precio'] ?? $data['precio']);
+                        $vPrecioFrac= (float)($v['precio_fraccionado'] ?? 0);
+                        if ($vPrecioFrac <= 0 && $vPrecio > 0) $vPrecioFrac = round($vPrecio * 1.15, 2);
 
                         if (empty($vDesc)) continue;
 
@@ -146,9 +148,9 @@ class StockController {
                         $this->db->prepare(
                             "INSERT INTO variantes
                              (tela_id, empresa_id, descripcion, codigo_barras,
-                              unidad, precio, precio_rollo, minimo_venta, stock)
-                             VALUES (?,?,?,?,?,?,0,?,0)"
-                        )->execute([$id, $eid, $vDesc, $vBarcode, $vUnidad, $vPrecio, $data['minimo_venta']]);
+                              unidad, precio, precio_fraccionado, precio_rollo, minimo_venta, stock)
+                             VALUES (?,?,?,?,?,?,?,0,?,0)"
+                        )->execute([$id, $eid, $vDesc, $vBarcode, $vUnidad, $vPrecio, $vPrecioFrac, $data['minimo_venta']]);
                         $varId = (int)$this->db->lastInsertId();
 
                         // Rollos de esta variante
@@ -205,6 +207,35 @@ class StockController {
         }
 
         $this->flashOk('Producto guardado correctamente.');
+        header('Location: ' . BASE_URL . '/index.php?page=stock');
+        exit;
+    }
+
+    public function eliminarTela(): void {
+        Auth::require();
+        $eid = Auth::empresaId();
+        $id  = (int)($_POST['id'] ?? 0);
+
+        if (!$id) {
+            $this->flashError('Producto no encontrado.');
+            header('Location: ' . BASE_URL . '/index.php?page=stock');
+            exit;
+        }
+
+        // Verificar que pertenece a esta empresa
+        $stmt = $this->db->prepare("SELECT id FROM telas WHERE id=? AND empresa_id=? AND activa=1");
+        $stmt->execute([$id, $eid]);
+        if (!$stmt->fetch()) {
+            $this->flashError('Producto no encontrado.');
+            header('Location: ' . BASE_URL . '/index.php?page=stock');
+            exit;
+        }
+
+        // Soft delete: desactivar tela y todas sus variantes
+        $this->db->prepare("UPDATE telas    SET activa=0 WHERE id=? AND empresa_id=?")->execute([$id, $eid]);
+        $this->db->prepare("UPDATE variantes SET activa=0 WHERE tela_id=? AND empresa_id=?")->execute([$id, $eid]);
+
+        $this->flashOk('Producto eliminado correctamente.');
         header('Location: ' . BASE_URL . '/index.php?page=stock');
         exit;
     }
@@ -280,16 +311,25 @@ class StockController {
         $id   = (int)($_POST['id']      ?? 0);
         $tid  = (int)($_POST['tela_id'] ?? 0);
 
+        $tela = $this->findTela($tid, $eid);
+
         $data = [
             'descripcion'   => trim($_POST['descripcion']   ?? ''),
             'codigo_barras' => trim($_POST['codigo_barras'] ?? ''),
-            'unidad'        => in_array($_POST['unidad'] ?? '', ['metro','kilo']) ? $_POST['unidad'] : 'metro',
+            'unidad'        => ($tela['tipo'] === 'punto') ? 'kilo'
+                               : (in_array($_POST['unidad'] ?? '', ['metro','kilo']) ? $_POST['unidad'] : 'metro'),
             'minimo_venta'  => (float)($_POST['minimo_venta']  ?? 0.1),
             'costo'         => (float)($_POST['costo']         ?? 0),
-            'precio_rollo'  => (float)($_POST['precio_rollo']  ?? 0),
-            'precio'        => (float)($_POST['precio']        ?? 0),
-            'stock'         => (float)($_POST['stock']         ?? 0),
+            'precio_rollo'       => (float)($_POST['precio_rollo']       ?? 0),
+            'precio'             => (float)($_POST['precio']             ?? 0),
+            'precio_fraccionado' => (float)($_POST['precio_fraccionado'] ?? 0),
+            'stock'              => (float)($_POST['stock']              ?? 0),
         ];
+
+        // Si no ingresaron fraccionado pero sí base, calcular automáticamente
+        if ($data['precio_fraccionado'] <= 0 && $data['precio'] > 0) {
+            $data['precio_fraccionado'] = round($data['precio'] * 1.15, 2);
+        }
 
         if (empty($data['descripcion']) || empty($data['codigo_barras'])) {
             $this->flashError('Descripción y código de barras son obligatorios.');
@@ -301,27 +341,27 @@ class StockController {
             $stmt = $this->db->prepare(
                 "UPDATE variantes
                  SET descripcion=?, codigo_barras=?, unidad=?,
-                     minimo_venta=?, costo=?, precio_rollo=?, precio=?, stock=?
+                     minimo_venta=?, costo=?, precio_rollo=?, precio=?, precio_fraccionado=?, stock=?
                  WHERE id=? AND empresa_id=?"
             );
             $stmt->execute([
                 $data['descripcion'], $data['codigo_barras'], $data['unidad'],
                 $data['minimo_venta'], $data['costo'], $data['precio_rollo'],
-                $data['precio'], $data['stock'],
+                $data['precio'], $data['precio_fraccionado'], $data['stock'],
                 $id, $eid
             ]);
         } else {
             try {
                 $stmt = $this->db->prepare(
                     "INSERT INTO variantes
-                     (tela_id, empresa_id, descripcion, codigo_barras, unidad, minimo_venta, costo, precio_rollo, precio, stock)
-                     VALUES (?,?,?,?,?,?,?,?,?,?)"
+                     (tela_id, empresa_id, descripcion, codigo_barras, unidad, minimo_venta, costo, precio_rollo, precio, precio_fraccionado, stock)
+                     VALUES (?,?,?,?,?,?,?,?,?,?,?)"
                 );
                 $stmt->execute([
                     $tid, $eid,
                     $data['descripcion'], $data['codigo_barras'], $data['unidad'],
                     $data['minimo_venta'], $data['costo'], $data['precio_rollo'],
-                    $data['precio'], $data['stock']
+                    $data['precio'], $data['precio_fraccionado'], $data['stock']
                 ]);
             } catch (PDOException $e) {
                 if ($e->getCode() === '23000') {
@@ -729,9 +769,10 @@ class StockController {
             'tela_nombre' => $v['tela_nombre'],
             'descripcion' => $v['descripcion'],
             'unidad'      => $v['unidad'],
-            'precio'      => $v['precio'],
-            'precio_rollo'=> $v['precio_rollo'],
-            'minimo_venta'=> $v['minimo_venta'],
+            'precio'             => $v['precio'],
+            'precio_fraccionado' => $v['precio_fraccionado'] ?? 0,
+            'precio_rollo'       => $v['precio_rollo'],
+            'minimo_venta'       => $v['minimo_venta'],
             'stock'       => $v['stock'],
             'codigo_barras'=> $v['codigo_barras'],
         ];

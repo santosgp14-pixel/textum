@@ -440,8 +440,8 @@ require VIEW_PATH . '/layout/header.php';
                  placeholder="Ej: Azul marino" required>
         </div>
         <div class="form-group" style="margin:0">
-          <label class="form-label">Precio ($)</label>
-          <input type="number" name="variantes[${idx}][precio]" class="form-control"
+          <label class="form-label">Precio de venta ($)</label>
+          <input type="number" name="variantes[${idx}][precio]" class="v-precio form-control"
                  value="0" step="0.01" min="0">
         </div>
         <div class="form-group" style="margin:0">
@@ -451,6 +451,13 @@ require VIEW_PATH . '/layout/header.php';
             <option value="kilo">Kilo</option>
             <option value="rollo">Rollo</option>
           </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Precio fraccionado ($) <span style="color:var(--gray-400);font-weight:400;font-size:.78rem">+15%</span></label>
+          <input type="number" name="variantes[${idx}][precio_fraccionado]" class="v-precio-frac form-control"
+                 value="0" step="0.01" min="0">
         </div>
       </div>
 
@@ -497,6 +504,15 @@ require VIEW_PATH . '/layout/header.php';
   btnAddVar.addEventListener('click', () => {
     const row = buildVarianteRow(varIdx++);
     container.appendChild(row);
+    // Auto-calc precio_fraccionado (+15%) when precio changes
+    const precioInput = row.querySelector('.v-precio');
+    const fracInput   = row.querySelector('.v-precio-frac');
+    if (precioInput && fracInput) {
+      precioInput.addEventListener('input', function() {
+        const base = parseFloat(this.value) || 0;
+        if (base > 0) fracInput.value = (base * 1.15).toFixed(2);
+      });
+    }
   });
 
   function recalcStock() {
