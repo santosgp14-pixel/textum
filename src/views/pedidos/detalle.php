@@ -122,13 +122,16 @@ require VIEW_PATH . '/layout/header.php';
     </div>
   </div>
 
-  <!-- Resumen para imprimir/compartir -->
-  <?php if ($pedido['estado'] === 'confirmado'): ?>
-  <div class="card" id="resumen-card">
-    <div class="card-header">
-      <span class="card-title">Recibo del pedido</span>
-      <button onclick="window.print()" class="btn btn-sm btn-outline no-print">Imprimir</button>
-    </div>
+
+</div>
+
+<!-- Resumen para imprimir/compartir -->
+<?php if ($pedido['estado'] === 'confirmado'): ?>
+<div class="card" id="resumen-card" style="max-width:820px">
+  <div class="card-header">
+    <span class="card-title">Recibo del pedido</span>
+    <button onclick="window.print()" class="btn btn-sm btn-outline no-print">Imprimir</button>
+  </div>
     <div class="card-body" style="padding:20px 24px">
       <div class="resumen-header">
         <div class="resumen-logo">Text<span>um</span></div>
@@ -181,10 +184,8 @@ require VIEW_PATH . '/layout/header.php';
         <?= htmlspecialchars(Auth::empresaNombre()) ?> — Textum
       </div>
     </div>
-  </div>
-  <?php endif; ?>
-
 </div>
+<?php endif; ?>
 
 <?php if (in_array($pedido['estado'], ['abierto','confirmado']) && Auth::isAdmin()): ?>
 <div class="modal" id="modal-anular">
