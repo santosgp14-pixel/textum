@@ -46,16 +46,21 @@ require VIEW_PATH . '/layout/header.php';
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="form-group">
           <label class="form-label" for="unidad">Unidad de venta *</label>
-          <?php $esPunto = ($tela['tipo'] ?? '') === 'punto'; ?>
-          <?php if ($esPunto): ?>
-            <input type="hidden" name="unidad" value="kilo">
-            <input type="text" class="form-control" value="Kilo" disabled style="background:var(--gray-50,#f9fafb);color:var(--gray-500,#6b7280)">
-            <div class="text-xs text-muted mt-1">Los artículos tipo <strong>Punto</strong> se venden por kilo.</div>
-          <?php else: ?>
+          <?php
+            // Default: punto → kilo, plano/otro → metro
+            $tipoTela      = $tela['tipo'] ?? '';
+            $defaultUnidad = $tipoTela === 'punto' ? 'kilo' : 'metro';
+            $unidadActual  = $variante['unidad'] ?? $defaultUnidad;
+          ?>
           <select id="unidad" name="unidad" class="form-control">
-            <option value="metro" <?= ($variante['unidad'] ?? 'metro') === 'metro' ? 'selected' : '' ?>>Metro</option>
-            <option value="kilo"  <?= ($variante['unidad'] ?? '') === 'kilo'  ? 'selected' : '' ?>>Kilo</option>
+            <option value="metro" <?= $unidadActual === 'metro' ? 'selected' : '' ?>>Metro</option>
+            <option value="kilo"  <?= $unidadActual === 'kilo'  ? 'selected' : '' ?>>Kilo</option>
+            <option value="rollo" <?= $unidadActual === 'rollo' ? 'selected' : '' ?>>Rollo</option>
           </select>
+          <?php if (!$esEdicion): ?>
+          <div class="text-xs text-muted mt-1">
+            Predeterminado por tipo: <strong><?= $tipoTela === 'punto' ? 'Kilo (Punto)' : 'Metro (Plano)' ?></strong>
+          </div>
           <?php endif; ?>
         </div>
         <div class="form-group">
