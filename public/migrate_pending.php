@@ -80,13 +80,13 @@ runSafe($db, "CREATE TABLE IF NOT EXISTS `proveedores` (
   KEY `idx_proveedores_empresa` (`empresa_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", 'v1.6 tabla proveedores', $log);
 
-runSafe($db, "ALTER TABLE `gastos` ADD COLUMN IF NOT EXISTS `es_recurrente` TINYINT(1) NOT NULL DEFAULT 0 AFTER `fecha`", 'v1.6 gastos.es_recurrente', $log);
-runSafe($db, "ALTER TABLE `gastos` ADD COLUMN IF NOT EXISTS `frecuencia` ENUM('diario','semanal','mensual') NULL DEFAULT NULL AFTER `es_recurrente`", 'v1.6 gastos.frecuencia', $log);
-runSafe($db, "ALTER TABLE `gastos` ADD COLUMN IF NOT EXISTS `dia_cobro` TINYINT NULL DEFAULT NULL AFTER `frecuencia`", 'v1.6 gastos.dia_cobro', $log);
+runSafe($db, "ALTER TABLE `gastos` ADD COLUMN `es_recurrente` TINYINT(1) NOT NULL DEFAULT 0 AFTER `fecha`", 'v1.6 gastos.es_recurrente', $log);
+runSafe($db, "ALTER TABLE `gastos` ADD COLUMN `frecuencia` ENUM('diario','semanal','mensual') NULL DEFAULT NULL AFTER `es_recurrente`", 'v1.6 gastos.frecuencia', $log);
+runSafe($db, "ALTER TABLE `gastos` ADD COLUMN `dia_cobro` TINYINT NULL DEFAULT NULL AFTER `frecuencia`", 'v1.6 gastos.dia_cobro', $log);
 
-runSafe($db, "ALTER TABLE `empresas` ADD COLUMN IF NOT EXISTS `descripcion_catalogo` TEXT NULL DEFAULT NULL AFTER `activa`", 'v1.6 empresas.descripcion_catalogo', $log);
-runSafe($db, "ALTER TABLE `empresas` ADD COLUMN IF NOT EXISTS `whatsapp` VARCHAR(20) NULL DEFAULT NULL AFTER `descripcion_catalogo`", 'v1.6 empresas.whatsapp', $log);
-runSafe($db, "ALTER TABLE `empresas` ADD COLUMN IF NOT EXISTS `logo_url` VARCHAR(255) NULL DEFAULT NULL AFTER `whatsapp`", 'v1.6 empresas.logo_url', $log);
+runSafe($db, "ALTER TABLE `empresas` ADD COLUMN `descripcion_catalogo` TEXT NULL DEFAULT NULL AFTER `activa`", 'v1.6 empresas.descripcion_catalogo', $log);
+runSafe($db, "ALTER TABLE `empresas` ADD COLUMN `whatsapp` VARCHAR(20) NULL DEFAULT NULL AFTER `descripcion_catalogo`", 'v1.6 empresas.whatsapp', $log);
+runSafe($db, "ALTER TABLE `empresas` ADD COLUMN `logo_url` VARCHAR(255) NULL DEFAULT NULL AFTER `whatsapp`", 'v1.6 empresas.logo_url', $log);
 
 runSafe($db, "CREATE TABLE IF NOT EXISTS `remember_tokens` (
   `id`         INT UNSIGNED  NOT NULL AUTO_INCREMENT,
@@ -104,25 +104,25 @@ runSafe($db, "CREATE TABLE IF NOT EXISTS `remember_tokens` (
 // ──────────────────────────────────────────────
 // v1.7: precio_fraccionado en variantes
 // ──────────────────────────────────────────────
-runSafe($db, "ALTER TABLE `variantes` ADD COLUMN IF NOT EXISTS `precio_fraccionado` DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER `precio`", 'v1.7 variantes.precio_fraccionado', $log);
+runSafe($db, "ALTER TABLE `variantes` ADD COLUMN `precio_fraccionado` DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER `precio`", 'v1.7 variantes.precio_fraccionado', $log);
 runSafe($db, "UPDATE `variantes` SET `precio_fraccionado` = ROUND(`precio` * 1.15, 2) WHERE `precio` > 0 AND `precio_fraccionado` = 0", 'v1.7 variantes.precio_fraccionado init', $log);
 
 // ──────────────────────────────────────────────
 // v1.8: ancho en telas
 // ──────────────────────────────────────────────
-runSafe($db, "ALTER TABLE `telas` ADD COLUMN IF NOT EXISTS `ancho` DECIMAL(6,3) NULL DEFAULT NULL AFTER `rinde`", 'v1.8 telas.ancho', $log);
+runSafe($db, "ALTER TABLE `telas` ADD COLUMN `ancho` DECIMAL(6,3) NULL DEFAULT NULL AFTER `rinde`", 'v1.8 telas.ancho', $log);
 
 // ──────────────────────────────────────────────
 // v1.9: rollo_id en movimientos_stock + corrección metros
 // ──────────────────────────────────────────────
-runSafe($db, "ALTER TABLE `movimientos_stock` ADD COLUMN IF NOT EXISTS `rollo_id` INT UNSIGNED NULL DEFAULT NULL AFTER `pedido_id`", 'v1.9 movimientos_stock.rollo_id', $log);
+runSafe($db, "ALTER TABLE `movimientos_stock` ADD COLUMN `rollo_id` INT UNSIGNED NULL DEFAULT NULL AFTER `pedido_id`", 'v1.9 movimientos_stock.rollo_id', $log);
 runSafe($db, "UPDATE rollos r INNER JOIN (SELECT pi.rollo_id, SUM(pi.cantidad) AS total_vendido FROM pedido_items pi JOIN pedidos p ON p.id = pi.pedido_id WHERE p.estado = 'confirmado' AND pi.rollo_id IS NOT NULL GROUP BY pi.rollo_id) v ON v.rollo_id = r.id SET r.metros = GREATEST(0, r.metros - v.total_vendido)", 'v1.9 rollos metros corrección', $log);
 
 // ──────────────────────────────────────────────
 // v1.10: metodo_pago y seña en pedidos
 // ──────────────────────────────────────────────
-runSafe($db, "ALTER TABLE `pedidos` ADD COLUMN IF NOT EXISTS `metodo_pago` ENUM('efectivo','transferencia','tarjeta','cuenta_corriente','otro') NULL DEFAULT NULL AFTER `total`", 'v1.10 pedidos.metodo_pago', $log);
-runSafe($db, "ALTER TABLE `pedidos` ADD COLUMN IF NOT EXISTS `seña` DECIMAL(14,2) NOT NULL DEFAULT 0.00 AFTER `metodo_pago`", 'v1.10 pedidos.seña', $log);
+runSafe($db, "ALTER TABLE `pedidos` ADD COLUMN `metodo_pago` ENUM('efectivo','transferencia','tarjeta','cuenta_corriente','otro') NULL DEFAULT NULL AFTER `total`", 'v1.10 pedidos.metodo_pago', $log);
+runSafe($db, "ALTER TABLE `pedidos` ADD COLUMN `seña` DECIMAL(14,2) NOT NULL DEFAULT 0.00 AFTER `metodo_pago`", 'v1.10 pedidos.seña', $log);
 
 ?><!DOCTYPE html>
 <html lang="es">
