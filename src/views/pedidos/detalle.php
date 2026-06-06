@@ -216,14 +216,38 @@ require VIEW_PATH . '/layout/header.php';
           </tr>
           <?php endif; ?>
         </tfoot>
-          </tr>
-        </tfoot>
       </table>
 
       <div style="margin-top:20px;font-size:.75rem;color:var(--gray-400);text-align:center">
         <?= htmlspecialchars(Auth::empresaNombre()) ?> — Textum
       </div>
     </div>
+</div>
+<?php endif; ?>
+
+<?php if ($pedido['estado'] === 'confirmado'): ?>
+<div class="modal" id="modal-cerrar-saldo">
+  <div class="modal-backdrop"></div>
+  <div class="modal-box">
+    <h3 class="modal-title">Cobrar saldo pendiente</h3>
+    <p class="text-sm text-muted" style="margin-bottom:16px">
+      Saldo restante: <strong>$ <?= number_format(max(0, $pedido['total'] - ($pedido['sena'] ?? 0)), 2, ',', '.') ?></strong>
+    </p>
+    <div class="form-group">
+      <label class="form-label">Método de cobro</label>
+      <select id="saldo-metodo" class="form-control">
+        <option value="efectivo">💵 Efectivo</option>
+        <option value="transferencia">🏦 Transferencia</option>
+        <option value="tarjeta">💳 Tarjeta</option>
+        <option value="cuenta_corriente">📒 Cuenta corriente</option>
+        <option value="otro">Otro</option>
+      </select>
+    </div>
+    <div class="flex gap-3 mt-4">
+      <button id="btn-confirmar-cerrar-saldo" class="btn btn-success">Confirmar cobro</button>
+      <button id="btn-cancelar-cerrar-saldo" class="btn btn-outline">Cancelar</button>
+    </div>
+  </div>
 </div>
 <?php endif; ?>
 
