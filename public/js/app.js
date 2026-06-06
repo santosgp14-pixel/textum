@@ -282,6 +282,28 @@ if (pedidoForm) {
   metodoPagoEl?.addEventListener('change', savePago);
   senaInputEl?.addEventListener('change', savePago);
 
+  // ── Guardar y salir ──────────────────────────────────────
+  document.getElementById('btn-salir')?.addEventListener('click', async () => {
+    const ok = await Confirm({
+      title:   'Guardar y salir',
+      message: 'El pedido quedará abierto. Podés retomarlo cuando quieras.',
+      icon:    '💾',
+      okText:  'Guardar y salir',
+      okClass: 'btn-outline',
+    });
+    if (!ok) return;
+
+    // Save payment data before leaving
+    const fd = new FormData();
+    fd.append('pedido_id',   pedidoId);
+    fd.append('metodo_pago', metodoPagoEl?.value || '');
+    fd.append('sena',        senaInputEl?.value  || '0');
+    try {
+      await fetch('index.php?page=pedido_pago_set', { method: 'POST', body: fd });
+    } catch (_) {}
+    window.location.href = 'index.php?page=pedidos';
+  });
+
   let varianteActual = null; // variante seleccionada por barcode
 
   // ── Búsqueda unificada: nombre o código de barras ───────────

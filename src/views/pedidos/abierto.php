@@ -182,11 +182,10 @@ require VIEW_PATH . '/layout/header.php';
         <p class="text-xs text-muted text-center" style="line-height:1.5;padding:0 4px">
           El stock se descontará y el ingreso quedará registrado.
         </p>
-        <a href="index.php?page=pedidos"
-           class="btn btn-outline w-full"
-           onclick="return confirm('¿Salir? El pedido quedará abierto.')">
+        <button type="button" id="btn-salir"
+                class="btn btn-outline w-full">
           Guardar y salir
-        </a>
+        </button>
         <button id="btn-anular" class="btn btn-danger w-full" style="margin-top:4px"
                 data-pedido-id="<?= $pedido['id'] ?>">
           Anular pedido
