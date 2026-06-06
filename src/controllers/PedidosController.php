@@ -739,6 +739,23 @@ class PedidosController {
         );
         $stmtMov->execute([$id, $eid]);
         $stockAplicado = (int)$stmtMov->fetchColumn() > 0;
+
+        // Fetch payment columns with graceful fallback (migration may not have run yet)
+        if (!array_key_exists('metodo_pago', $pedido)) {
+            try {
+                $stmtPago = $this->db->prepare(
+                    "SELECT metodo_pago, `seña` FROM pedidos WHERE id = ?"
+                );
+                $stmtPago->execute([$id]);
+                $pagoRow = $stmtPago->fetch();
+                $pedido['metodo_pago'] = $pagoRow['metodo_pago'] ?? null;
+                $pedido['seña']        = $pagoRow['seña'] ?? 0;
+            } catch (\PDOException $e) {
+                $pedido['metodo_pago'] = null;
+                $pedido['seña']        = 0;
+            }
+        }
+
         require VIEW_PATH . '/pedidos/detalle.php';
     }
 
@@ -793,6 +810,22 @@ class PedidosController {
             'whatsapp' => $whatsapp,
             'logo_url' => $logo_url,
         ];
+
+        // Fetch payment columns with graceful fallback
+        if (!array_key_exists('metodo_pago', $pedido)) {
+            try {
+                $stmtPago = $this->db->prepare(
+                    "SELECT metodo_pago, `seña` FROM pedidos WHERE id = ?"
+                );
+                $stmtPago->execute([$id]);
+                $pagoRow = $stmtPago->fetch();
+                $pedido['metodo_pago'] = $pagoRow['metodo_pago'] ?? null;
+                $pedido['seña']        = $pagoRow['seña'] ?? 0;
+            } catch (\PDOException $e) {
+                $pedido['metodo_pago'] = null;
+                $pedido['seña']        = 0;
+            }
+        }
 
         $items        = $this->getItems($id);
         $receiptToken = $token;
