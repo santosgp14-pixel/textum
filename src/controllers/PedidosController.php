@@ -333,9 +333,17 @@ class PedidosController {
                 $metodoPago = null;
             }
 
-            $this->db->prepare(
-                "UPDATE pedidos SET estado='confirmado', confirmado_at=NOW(), metodo_pago=?, seña=? WHERE id=?"
-            )->execute([$metodoPago, $sena, $pedido_id]);
+            // Try saving payment columns (graceful fallback if migration not yet run)
+            try {
+                $this->db->prepare(
+                    "UPDATE pedidos SET estado='confirmado', confirmado_at=NOW(), metodo_pago=?, seña=? WHERE id=?"
+                )->execute([$metodoPago, $sena, $pedido_id]);
+            } catch (\PDOException $e) {
+                // Columns missing — confirm without them
+                $this->db->prepare(
+                    "UPDATE pedidos SET estado='confirmado', confirmado_at=NOW() WHERE id=?"
+                )->execute([$pedido_id]);
+            }
 
             $this->db->commit();
 
