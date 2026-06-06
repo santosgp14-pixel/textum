@@ -139,19 +139,51 @@ class PedidosController {
         $existente = $stmt->fetch();
 
         if ($existente) {
-            // Actualizar; si viene precio_unit, actualizarlo también
-            $precio   = $precioCustom > 0 ? $precioCustom : (float)$existente['precio_unit'];
-            $subtotal = round($cantidad * $precio, 2);
+            // Actualizar cantidad: calcular diferencia para ajustar stock
+            $diferencia = $cantidad - (float)$existente['cantidad'];
+            $precio     = $precioCustom > 0 ? $precioCustom : (float)$existente['precio_unit'];
+            $subtotal   = round($cantidad * $precio, 2);
             $this->db->prepare(
                 "UPDATE pedido_items SET cantidad = ?, precio_unit = ?, subtotal = ?, rollo_id = ? WHERE id = ?"
             )->execute([$cantidad, $precio, $subtotal, $rollo_id, $existente['id']]);
+
+            // Ajustar stock por la diferencia
+            if ($diferencia != 0) {
+                $stmt = $this->db->prepare("SELECT stock FROM variantes WHERE id = ? FOR UPDATE");
+                $stmt->execute([$variante_id]);
+                $stockActual  = (float)$stmt->fetchColumn();
+                $stockNuevo   = $stockActual - $diferencia;
+                if ($stockNuevo < 0) {
+                    echo json_encode(['ok' => false, 'msg' => "Stock insuficiente. Disponible: $stockActual {$variante['unidad']}"]);
+                    exit;
+                }
+                $this->db->prepare("UPDATE variantes SET stock = ? WHERE id = ?")->execute([$stockNuevo, $variante_id]);
+            }
         } else {
-            $precio   = $precioCustom > 0 ? $precioCustom : (float)$variante['precio'];
-            $subtotal = round($cantidad * $precio, 2);
+            // Nuevo item: verificar y descontar stock inmediatamente (reserva)
+            $stmt = $this->db->prepare("SELECT stock FROM variantes WHERE id = ? AND empresa_id = ? FOR UPDATE");
+            $stmt->execute([$variante_id, $eid]);
+            $stockActual = (float)$stmt->fetchColumn();
+            if ($stockActual < $cantidad) {
+                echo json_encode(['ok' => false, 'msg' => "Stock insuficiente. Disponible: $stockActual {$variante['unidad']}"]);
+                exit;
+            }
+            $stockNuevo = $stockActual - $cantidad;
+            $precio     = $precioCustom > 0 ? $precioCustom : (float)$variante['precio'];
+            $subtotal   = round($cantidad * $precio, 2);
+            $this->db->prepare("UPDATE variantes SET stock = ? WHERE id = ?")->execute([$stockNuevo, $variante_id]);
             $this->db->prepare(
                 "INSERT INTO pedido_items (pedido_id, variante_id, rollo_id, cantidad, precio_unit, subtotal)
                  VALUES (?,?,?,?,?,?)"
             )->execute([$pedido_id, $variante_id, $rollo_id, $cantidad, $precio, $subtotal]);
+
+            // Registrar movimiento de reserva
+            $uid = Auth::userId();
+            $this->db->prepare(
+                "INSERT INTO movimientos_stock
+                 (empresa_id, variante_id, pedido_id, rollo_id, usuario_id, tipo, cantidad, stock_antes, stock_despues)
+                 VALUES (?,?,?,?,?,'reserva',?,?,?)"
+            )->execute([$eid, $variante_id, $pedido_id, $rollo_id, $uid, -$cantidad, $stockActual, $stockNuevo]);
         }
 
         // Recalcular total del pedido
@@ -184,6 +216,25 @@ class PedidosController {
         if ($pedido['estado'] !== 'abierto') {
             echo json_encode(['ok' => false, 'msg' => 'Pedido no editable.']);
             exit;
+        }
+
+        // Fetch item to restore its stock before deleting
+        $stmtItem = $this->db->prepare(
+            "SELECT pi.*, v.stock AS stock_actual FROM pedido_items pi
+             JOIN variantes v ON v.id = pi.variante_id
+             WHERE pi.id = ? AND pi.pedido_id = ?"
+        );
+        $stmtItem->execute([$item_id, $pedido_id]);
+        $item = $stmtItem->fetch();
+
+        if ($item) {
+            // Restore reserved stock
+            $stockNuevo = (float)$item['stock_actual'] + (float)$item['cantidad'];
+            $this->db->prepare("UPDATE variantes SET stock = ? WHERE id = ?")->execute([$stockNuevo, $item['variante_id']]);
+            // Remove reserva movement
+            $this->db->prepare(
+                "DELETE FROM movimientos_stock WHERE pedido_id = ? AND variante_id = ? AND tipo = 'reserva'"
+            )->execute([$pedido_id, $item['variante_id']]);
         }
 
         $this->db->prepare(
@@ -267,51 +318,51 @@ class PedidosController {
         $this->db->beginTransaction();
         try {
             foreach ($items as $item) {
-                // Leer stock actual (con lock de fila)
-                $stmt = $this->db->prepare(
-                    "SELECT stock FROM variantes WHERE id = ? AND empresa_id = ? FOR UPDATE"
+                // Stock was already reserved on agregarItem.
+                // Check a reserva movement exists; if not (legacy order), deduct now.
+                $stmtRes = $this->db->prepare(
+                    "SELECT COUNT(*) FROM movimientos_stock WHERE pedido_id = ? AND variante_id = ? AND tipo = 'reserva'"
                 );
-                $stmt->execute([$item['variante_id'], $eid]);
-                $v = $stmt->fetch();
+                $stmtRes->execute([$pedido_id, $item['variante_id']]);
+                $tieneReserva = (int)$stmtRes->fetchColumn() > 0;
 
-                if (!$v) {
-                    throw new RuntimeException("Variante #{$item['variante_id']} no encontrada.");
-                }
-                if ($v['stock'] < $item['cantidad']) {
-                    throw new RuntimeException(
-                        "Stock insuficiente para \"{$item['descripcion']}\". " .
-                        "Disponible: {$v['stock']} {$item['unidad']}"
+                if ($tieneReserva) {
+                    // Convert reserva → venta
+                    $this->db->prepare(
+                        "UPDATE movimientos_stock SET tipo = 'venta' WHERE pedido_id = ? AND variante_id = ? AND tipo = 'reserva'"
+                    )->execute([$pedido_id, $item['variante_id']]);
+                } else {
+                    // Legacy order (created before reservation system): deduct stock now
+                    $stmt = $this->db->prepare(
+                        "SELECT stock FROM variantes WHERE id = ? AND empresa_id = ? FOR UPDATE"
                     );
+                    $stmt->execute([$item['variante_id'], $eid]);
+                    $v = $stmt->fetch();
+                    if (!$v) throw new RuntimeException("Variante #{$item['variante_id']} no encontrada.");
+                    if ($v['stock'] < $item['cantidad']) {
+                        throw new RuntimeException(
+                            "Stock insuficiente para \"{$item['descripcion']}\". Disponible: {$v['stock']} {$item['unidad']}"
+                        );
+                    }
+                    $stock_despues = $v['stock'] - $item['cantidad'];
+                    $this->db->prepare("UPDATE variantes SET stock = ? WHERE id = ?")->execute([$stock_despues, $item['variante_id']]);
+                    $rolloId = !empty($item['rollo_id']) ? (int)$item['rollo_id'] : null;
+                    $this->db->prepare(
+                        "INSERT INTO movimientos_stock
+                         (empresa_id, variante_id, pedido_id, rollo_id, usuario_id, tipo, cantidad, stock_antes, stock_despues)
+                         VALUES (?,?,?,?,?,'venta',?,?,?)"
+                    )->execute([$eid, $item['variante_id'], $pedido_id, $rolloId, $uid, -$item['cantidad'], $v['stock'], $stock_despues]);
                 }
 
-                $stock_antes   = $v['stock'];
-                $stock_despues = $stock_antes - $item['cantidad'];
-
-                // Descontar stock
-                $this->db->prepare(
-                    "UPDATE variantes SET stock = ? WHERE id = ?"
-                )->execute([$stock_despues, $item['variante_id']]);
-
-                // Descontar metros del rollo y marcarlo agotado si se vacía
+                // Actualizar metros del rollo si aplica
                 if (!empty($item['rollo_id'])) {
                     $this->db->prepare(
                         "UPDATE rollos
                          SET metros = GREATEST(0, metros - ?),
-                             estado  = IF(metros - ? <= 0, 'agotado', estado)
+                             estado = IF(metros - ? <= 0, 'agotado', estado)
                          WHERE id = ? AND empresa_id = ?"
                     )->execute([$item['cantidad'], $item['cantidad'], $item['rollo_id'], $eid]);
                 }
-
-                // Registrar movimiento de stock
-                $rolloId = !empty($item['rollo_id']) ? (int)$item['rollo_id'] : null;
-                $this->db->prepare(
-                    "INSERT INTO movimientos_stock
-                     (empresa_id, variante_id, pedido_id, rollo_id, usuario_id, tipo, cantidad, stock_antes, stock_despues)
-                     VALUES (?,?,?,?,?,'venta',?,?,?)"
-                )->execute([
-                    $eid, $item['variante_id'], $pedido_id, $rolloId, $uid,
-                    -$item['cantidad'], $stock_antes, $stock_despues
-                ]);
             }
 
             // Registrar ingreso en balance
@@ -339,10 +390,11 @@ class PedidosController {
                     "UPDATE pedidos SET estado='confirmado', confirmado_at=NOW(), metodo_pago=?, sena=? WHERE id=?"
                 )->execute([$metodoPago, $sena, $pedido_id]);
             } catch (\PDOException $e) {
-                // Columns missing — confirm without them
+                // Columns missing — confirm and store payment info in observaciones as JSON
+                $obs = json_encode(['metodo_pago' => $metodoPago, 'sena' => $sena]);
                 $this->db->prepare(
-                    "UPDATE pedidos SET estado='confirmado', confirmado_at=NOW() WHERE id=?"
-                )->execute([$pedido_id]);
+                    "UPDATE pedidos SET estado='confirmado', confirmado_at=NOW(), observaciones=? WHERE id=?"
+                )->execute([$obs, $pedido_id]);
             }
 
             $this->db->commit();
@@ -630,11 +682,30 @@ class PedidosController {
 
         $pedido = $this->findPedido($pedido_id, $eid);
 
-        // Pedido abierto: anular sin tocar stock ni balance (no se confirmó)
+        // Pedido abierto: restaurar stock reservado
         if ($pedido['estado'] === 'abierto') {
-            $this->db->prepare(
-                "UPDATE pedidos SET estado='anulado', anulado_por=?, motivo_anulacion=?, anulado_at=NOW() WHERE id=?"
-            )->execute([$uid, $motivo, $pedido_id]);
+            $items = $this->getItems($pedido_id);
+            $this->db->beginTransaction();
+            try {
+                foreach ($items as $item) {
+                    // Restore stock
+                    $this->db->prepare(
+                        "UPDATE variantes SET stock = stock + ? WHERE id = ?"
+                    )->execute([$item['cantidad'], $item['variante_id']]);
+                    // Remove reserva movement
+                    $this->db->prepare(
+                        "DELETE FROM movimientos_stock WHERE pedido_id = ? AND variante_id = ? AND tipo = 'reserva'"
+                    )->execute([$pedido_id, $item['variante_id']]);
+                }
+                $this->db->prepare(
+                    "UPDATE pedidos SET estado='anulado', anulado_por=?, motivo_anulacion=?, anulado_at=NOW() WHERE id=?"
+                )->execute([$uid, $motivo, $pedido_id]);
+                $this->db->commit();
+            } catch (Throwable $e) {
+                $this->db->rollBack();
+                echo json_encode(['ok' => false, 'msg' => 'Error al anular: ' . $e->getMessage()]);
+                exit;
+            }
             echo json_encode([
                 'ok'       => true,
                 'msg'      => 'Pedido anulado.',
@@ -800,8 +871,10 @@ class PedidosController {
                 $pedido['metodo_pago'] = $pagoRow['metodo_pago'] ?? null;
                 $pedido['sena']        = $pagoRow['sena'] ?? 0;
             } catch (\PDOException $e) {
-                $pedido['metodo_pago'] = null;
-                $pedido['sena']        = 0;
+                // Columns not yet migrated — try reading from observaciones JSON
+                $obs = json_decode($pedido['observaciones'] ?? '', true);
+                $pedido['metodo_pago'] = $obs['metodo_pago'] ?? null;
+                $pedido['sena']        = (float)($obs['sena'] ?? 0);
             }
         }
 
@@ -871,8 +944,10 @@ class PedidosController {
                 $pedido['metodo_pago'] = $pagoRow['metodo_pago'] ?? null;
                 $pedido['sena']        = $pagoRow['sena'] ?? 0;
             } catch (\PDOException $e) {
-                $pedido['metodo_pago'] = null;
-                $pedido['sena']        = 0;
+                // Columns not yet migrated — try reading from observaciones JSON
+                $obs = json_decode($pedido['observaciones'] ?? '', true);
+                $pedido['metodo_pago'] = $obs['metodo_pago'] ?? null;
+                $pedido['sena']        = (float)($obs['sena'] ?? 0);
             }
         }
 
