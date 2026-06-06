@@ -88,15 +88,24 @@ require VIEW_PATH . '/layout/header.php';
         </div>
         <div class="form-group">
           <label class="form-label" for="precio">Precio de venta ($) *</label>
+          <?php
+            // Al crear: toma el precio del producto como default. Al editar: usa el de la variante.
+            $precioDefault = $esEdicion
+              ? (float)($variante['precio'] ?? 0)
+              : (float)($variante['precio'] ?? $tela['precio'] ?? 0);
+            $fracDefault = $esEdicion
+              ? (float)($variante['precio_fraccionado'] ?? 0)
+              : (float)($variante['precio_fraccionado'] ?? round($precioDefault * 1.15, 2));
+          ?>
           <input type="number" id="precio" name="precio" class="form-control"
-                 value="<?= fmtPrecioVal((float)($variante['precio'] ?? 0)) ?>"
+                 value="<?= fmtPrecioVal($precioDefault) ?>"
                  step="0.01" min="0" required>
           <div class="text-xs text-muted" style="margin-top:4px">Precio base por <?= $variante['unidad'] ?? 'metro' ?> / kilo</div>
         </div>
         <div class="form-group">
           <label class="form-label" for="precio_fraccionado">Precio fraccionado ($)</label>
           <input type="number" id="precio_fraccionado" name="precio_fraccionado" class="form-control"
-                 value="<?= fmtPrecioVal((float)($variante['precio_fraccionado'] ?? 0)) ?>"
+                 value="<?= fmtPrecioVal($fracDefault) ?>"
                  step="0.01" min="0">
           <div class="text-xs text-muted" style="margin-top:4px">
             Venta fraccionada <span class="badge badge-blue" style="font-size:.7rem;vertical-align:middle">+15%</span>
