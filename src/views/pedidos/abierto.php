@@ -150,6 +150,30 @@ require VIEW_PATH . '/layout/header.php';
       </div>
 
       <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px">
+
+        <!-- Método de pago y seña -->
+        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px">
+          <div>
+            <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;display:block;margin-bottom:4px">Método de pago</label>
+            <select id="metodo-pago" class="form-control" style="font-size:.875rem">
+              <option value="">— Sin especificar —</option>
+              <option value="efectivo">💵 Efectivo</option>
+              <option value="transferencia">🏦 Transferencia</option>
+              <option value="tarjeta">💳 Tarjeta</option>
+              <option value="cuenta_corriente">📒 Cuenta corriente</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;display:block;margin-bottom:4px">Seña / adelanto ($)</label>
+            <input type="number" id="sena-input" class="form-control" style="font-size:.875rem"
+                   value="0" step="0.01" min="0" placeholder="0,00">
+          </div>
+          <div id="saldo-pendiente-wrap" style="display:none;background:#fef9c3;border-radius:6px;padding:8px 10px;font-size:.82rem">
+            Saldo pendiente: <strong id="saldo-pendiente-val">$ 0,00</strong>
+          </div>
+        </div>
+
         <button id="btn-confirmar"
                 class="btn btn-success btn-lg w-full"
                 <?= empty($items) ? 'disabled' : '' ?>>

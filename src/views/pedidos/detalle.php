@@ -72,6 +72,23 @@ require VIEW_PATH . '/layout/header.php';
           <div class="text-xs text-muted" style="font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Total</div>
           <div class="font-bold" style="font-size:1.3rem;letter-spacing:-.02em">$ <?= number_format($pedido['total'], 2, ',', '.') ?></div>
         </div>
+        <?php if (!empty($pedido['metodo_pago'])): ?>
+        <?php $metodosLabel = ['efectivo'=>'💵 Efectivo','transferencia'=>'🏦 Transferencia','tarjeta'=>'💳 Tarjeta','cuenta_corriente'=>'📒 Cta. corriente','otro'=>'Otro']; ?>
+        <div>
+          <div class="text-xs text-muted" style="font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Método de pago</div>
+          <div class="font-bold"><?= $metodosLabel[$pedido['metodo_pago']] ?? htmlspecialchars($pedido['metodo_pago']) ?></div>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($pedido['seña']) && $pedido['seña'] > 0): ?>
+        <div>
+          <div class="text-xs text-muted" style="font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Seña / adelanto</div>
+          <div class="font-bold" style="color:var(--green-600,#16a34a)">$ <?= number_format($pedido['seña'], 2, ',', '.') ?></div>
+        </div>
+        <div>
+          <div class="text-xs text-muted" style="font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Saldo pendiente</div>
+          <div class="font-bold" style="color:var(--red-600,#dc2626)">$ <?= number_format(max(0, $pedido['total'] - $pedido['seña']), 2, ',', '.') ?></div>
+        </div>
+        <?php endif; ?>
       </div>
 
       <?php if ($pedido['motivo_anulacion']): ?>
@@ -148,6 +165,10 @@ require VIEW_PATH . '/layout/header.php';
         <?php if ($pedido['confirmado_at']): ?>
         <div><div class="text-xs text-muted">Confirmado</div><div class="font-bold"><?= date('d/m/Y H:i', strtotime($pedido['confirmado_at'])) ?></div></div>
         <?php endif; ?>
+        <?php if (!empty($pedido['metodo_pago'])): ?>
+        <?php $metodosLabel = ['efectivo'=>'💵 Efectivo','transferencia'=>'🏦 Transferencia','tarjeta'=>'💳 Tarjeta','cuenta_corriente'=>'📒 Cta. corriente','otro'=>'Otro']; ?>
+        <div><div class="text-xs text-muted">Método de pago</div><div class="font-bold"><?= $metodosLabel[$pedido['metodo_pago']] ?? htmlspecialchars($pedido['metodo_pago']) ?></div></div>
+        <?php endif; ?>
       </div>
 
       <table style="width:100%;border-collapse:collapse;font-size:.88rem">
@@ -176,6 +197,18 @@ require VIEW_PATH . '/layout/header.php';
           <tr style="border-top:2px solid var(--gray-200)">
             <td colspan="3" style="text-align:right;padding:12px 4px;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-400)">Total</td>
             <td style="text-align:right;padding:12px 4px;font-weight:800;font-size:1.1rem">$ <?= number_format($pedido['total'], 2, ',', '.') ?></td>
+          </tr>
+          <?php if (!empty($pedido['seña']) && $pedido['seña'] > 0): ?>
+          <tr>
+            <td colspan="3" style="text-align:right;padding:6px 4px;font-size:.82rem;color:var(--gray-500)">Seña abonada</td>
+            <td style="text-align:right;padding:6px 4px;font-weight:700;color:#16a34a">$ <?= number_format($pedido['seña'], 2, ',', '.') ?></td>
+          </tr>
+          <tr>
+            <td colspan="3" style="text-align:right;padding:6px 4px;font-size:.82rem;color:var(--gray-500)">Saldo pendiente</td>
+            <td style="text-align:right;padding:6px 4px;font-weight:700;color:#dc2626">$ <?= number_format(max(0, $pedido['total'] - $pedido['seña']), 2, ',', '.') ?></td>
+          </tr>
+          <?php endif; ?>
+        </tfoot>
           </tr>
         </tfoot>
       </table>

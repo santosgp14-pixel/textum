@@ -326,9 +326,16 @@ class PedidosController {
             ]);
 
             // Cerrar pedido
+            $metodoPago = $_POST['metodo_pago'] ?? null;
+            $sena       = max(0, (float)($_POST['sena'] ?? 0));
+            $validMetodos = ['efectivo','transferencia','tarjeta','cuenta_corriente','otro'];
+            if ($metodoPago !== null && !in_array($metodoPago, $validMetodos)) {
+                $metodoPago = null;
+            }
+
             $this->db->prepare(
-                "UPDATE pedidos SET estado='confirmado', confirmado_at=NOW() WHERE id=?"
-            )->execute([$pedido_id]);
+                "UPDATE pedidos SET estado='confirmado', confirmado_at=NOW(), metodo_pago=?, seña=? WHERE id=?"
+            )->execute([$metodoPago, $sena, $pedido_id]);
 
             $this->db->commit();
 

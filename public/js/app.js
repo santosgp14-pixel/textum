@@ -245,6 +245,26 @@ if (pedidoForm) {
   const totalEl      = document.getElementById('order-total');
   const emptyMsg     = document.getElementById('items-empty');
   const btnConfirmar = document.getElementById('btn-confirmar');
+  const metodoPagoEl = document.getElementById('metodo-pago');
+  const senaInputEl  = document.getElementById('sena-input');
+
+  // ── Saldo pendiente en tiempo real ───────────────────────────
+  function updateSaldo() {
+    const wrap  = document.getElementById('saldo-pendiente-wrap');
+    const valEl = document.getElementById('saldo-pendiente-val');
+    if (!wrap || !valEl || !senaInputEl) return;
+    const totalStr = totalEl?.textContent.replace(/[^0-9,]/g, '').replace(',', '.') || '0';
+    const total    = parseFloat(totalStr.replace(/\./g, '').replace(',', '.')) || 0;
+    const sena     = parseFloat(senaInputEl.value) || 0;
+    if (sena > 0 && sena < total) {
+      const saldo = total - sena;
+      valEl.textContent = formatPesos(saldo);
+      wrap.style.display = '';
+    } else {
+      wrap.style.display = 'none';
+    }
+  }
+  senaInputEl?.addEventListener('input', updateSaldo);
 
   let varianteActual = null; // variante seleccionada por barcode
 
@@ -473,6 +493,9 @@ if (pedidoForm) {
 
     const fd = new FormData();
     fd.append('pedido_id', pedidoId);
+    if (metodoPagoEl?.value) fd.append('metodo_pago', metodoPagoEl.value);
+    const senaVal = parseFloat(senaInputEl?.value) || 0;
+    if (senaVal > 0) fd.append('sena', senaVal);
 
     fetch('index.php?page=pedido_confirmar', { method: 'POST', body: fd })
       .then(r => r.json())

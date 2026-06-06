@@ -118,6 +118,12 @@ runSafe($db, "ALTER TABLE `telas` ADD COLUMN IF NOT EXISTS `ancho` DECIMAL(6,3) 
 runSafe($db, "ALTER TABLE `movimientos_stock` ADD COLUMN IF NOT EXISTS `rollo_id` INT UNSIGNED NULL DEFAULT NULL AFTER `pedido_id`", 'v1.9 movimientos_stock.rollo_id', $log);
 runSafe($db, "UPDATE rollos r INNER JOIN (SELECT pi.rollo_id, SUM(pi.cantidad) AS total_vendido FROM pedido_items pi JOIN pedidos p ON p.id = pi.pedido_id WHERE p.estado = 'confirmado' AND pi.rollo_id IS NOT NULL GROUP BY pi.rollo_id) v ON v.rollo_id = r.id SET r.metros = GREATEST(0, r.metros - v.total_vendido)", 'v1.9 rollos metros corrección', $log);
 
+// ──────────────────────────────────────────────
+// v1.10: metodo_pago y seña en pedidos
+// ──────────────────────────────────────────────
+runSafe($db, "ALTER TABLE `pedidos` ADD COLUMN IF NOT EXISTS `metodo_pago` ENUM('efectivo','transferencia','tarjeta','cuenta_corriente','otro') NULL DEFAULT NULL AFTER `total`", 'v1.10 pedidos.metodo_pago', $log);
+runSafe($db, "ALTER TABLE `pedidos` ADD COLUMN IF NOT EXISTS `seña` DECIMAL(14,2) NOT NULL DEFAULT 0.00 AFTER `metodo_pago`", 'v1.10 pedidos.seña', $log);
+
 ?><!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"><title>Migración pendiente</title>
@@ -125,7 +131,7 @@ runSafe($db, "UPDATE rollos r INNER JOIN (SELECT pi.rollo_id, SUM(pi.cantidad) A
 li{margin:.3rem 0;font-size:.9rem}</style>
 </head>
 <body>
-<h2>Migración v1.4 → v1.9 completada</h2>
+<h2>Migración v1.4 → v1.10 completada</h2>
 <ul>
 <?php foreach ($log as $line): ?>
   <li><?= htmlspecialchars($line) ?></li>
