@@ -97,6 +97,37 @@ class PedidosController {
     // Guardar método de pago y seña en pedido abierto (AJAX)
     // ──────────────────────────────────────────────────────────
 
+    public function guardarSalir(): void {
+        Auth::require();
+
+        $eid       = Auth::empresaId();
+        $pedido_id = (int)($_POST['pedido_id'] ?? 0);
+        $metodo    = $_POST['metodo_pago'] ?? null;
+        $sena      = max(0, (float)($_POST['sena'] ?? 0));
+
+        $validMetodos = ['efectivo','transferencia','tarjeta','cuenta_corriente','otro'];
+        if ($metodo !== null && !in_array($metodo, $validMetodos)) $metodo = null;
+
+        if ($pedido_id) {
+            $pedido = $this->findPedido($pedido_id, $eid);
+            if ($pedido && $pedido['estado'] === 'abierto') {
+                try {
+                    $this->db->prepare(
+                        "UPDATE pedidos SET metodo_pago = ?, sena = ? WHERE id = ?"
+                    )->execute([$metodo ?: null, $sena, $pedido_id]);
+                } catch (\PDOException $e) {
+                    $obs = json_encode(['metodo_pago' => $metodo, 'sena' => $sena]);
+                    $this->db->prepare(
+                        "UPDATE pedidos SET observaciones = ? WHERE id = ?"
+                    )->execute([$obs, $pedido_id]);
+                }
+            }
+        }
+
+        header('Location: ' . BASE_URL . '/index.php?page=pedidos');
+        exit;
+    }
+
     public function setPago(): void {
         Auth::require();
         header('Content-Type: application/json');
@@ -419,24 +450,34 @@ class PedidosController {
             ]);
 
             // Cerrar pedido
-            $metodoPago = $_POST['metodo_pago'] ?? null;
-            $sena       = max(0, (float)($_POST['sena'] ?? 0));
+            // Prefer POST values; fall back to whatever was already saved (via auto-save)
+            $postMetodo = $_POST['metodo_pago'] ?? null;
+            $postSena   = isset($_POST['sena']) ? max(0, (float)$_POST['sena']) : null;
             $validMetodos = ['efectivo','transferencia','tarjeta','cuenta_corriente','otro'];
-            if ($metodoPago !== null && !in_array($metodoPago, $validMetodos)) {
-                $metodoPago = null;
+            if ($postMetodo !== null && !in_array($postMetodo, $validMetodos)) {
+                $postMetodo = null;
             }
 
             // Try saving payment columns (graceful fallback if migration not yet run)
             try {
+                // Read existing saved values so confirm doesn't overwrite auto-saved payment
+                $rowPago = $this->db->prepare("SELECT metodo_pago, sena FROM pedidos WHERE id = ?");
+                $rowPago->execute([$pedido_id]);
+                $existingPago = $rowPago->fetch();
+                $metodoPago = $postMetodo ?? $existingPago['metodo_pago'] ?? null;
+                $sena       = $postSena  ?? (float)($existingPago['sena'] ?? 0);
+
                 $this->db->prepare(
                     "UPDATE pedidos SET estado='confirmado', confirmado_at=NOW(), metodo_pago=?, sena=? WHERE id=?"
                 )->execute([$metodoPago, $sena, $pedido_id]);
             } catch (\PDOException $e) {
                 // Columns missing — confirm and store payment info in observaciones as JSON
-                $obs = json_encode(['metodo_pago' => $metodoPago, 'sena' => $sena]);
+                $obs = json_decode($pedido['observaciones'] ?? '{}', true) ?: [];
+                if ($postMetodo !== null) $obs['metodo_pago'] = $postMetodo;
+                if ($postSena   !== null) $obs['sena']        = $postSena;
                 $this->db->prepare(
                     "UPDATE pedidos SET estado='confirmado', confirmado_at=NOW(), observaciones=? WHERE id=?"
-                )->execute([$obs, $pedido_id]);
+                )->execute([json_encode($obs), $pedido_id]);
             }
 
             $this->db->commit();

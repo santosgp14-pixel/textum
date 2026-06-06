@@ -282,18 +282,18 @@ if (pedidoForm) {
   metodoPagoEl?.addEventListener('change', savePago);
   senaInputEl?.addEventListener('change', savePago);
 
-  // ── Guardar y salir ──────────────────────────────────────
-  document.getElementById('btn-salir')?.addEventListener('click', async () => {
-    // Save payment data then navigate
-    const fd = new FormData();
-    fd.append('pedido_id',   pedidoId);
-    fd.append('metodo_pago', metodoPagoEl?.value || '');
-    fd.append('sena',        senaInputEl?.value  || '0');
-    try {
-      await fetch('index.php?page=pedido_pago_set', { method: 'POST', body: fd });
-    } catch (_) {}
-    window.location.href = 'index.php?page=pedidos';
-  });
+  // ── Sync hidden form-salir inputs on change ───────────────
+  function syncSalirForm() {
+    const hm = document.getElementById('hidden-metodo-pago');
+    const hs = document.getElementById('hidden-sena');
+    if (hm) hm.value = metodoPagoEl?.value || '';
+    if (hs) hs.value = senaInputEl?.value  || '0';
+  }
+  metodoPagoEl?.addEventListener('change', syncSalirForm);
+  senaInputEl?.addEventListener('input',  syncSalirForm);
+  senaInputEl?.addEventListener('change', syncSalirForm);
+
+  document.getElementById('form-salir')?.addEventListener('submit', syncSalirForm);
 
   let varianteActual = null; // variante seleccionada por barcode
 

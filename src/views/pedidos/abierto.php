@@ -182,10 +182,12 @@ require VIEW_PATH . '/layout/header.php';
         <p class="text-xs text-muted text-center" style="line-height:1.5;padding:0 4px">
           El stock se descontará y el ingreso quedará registrado.
         </p>
-        <button type="button" id="btn-salir"
-                class="btn btn-outline w-full">
-          Guardar y salir
-        </button>
+        <form method="POST" action="index.php?page=pedido_guardar_salir" id="form-salir">
+          <input type="hidden" name="pedido_id"   value="<?= $pedido['id'] ?>">
+          <input type="hidden" name="metodo_pago" id="hidden-metodo-pago" value="<?= htmlspecialchars($pedido['metodo_pago'] ?? '') ?>">
+          <input type="hidden" name="sena"        id="hidden-sena"        value="<?= number_format((float)($pedido['sena'] ?? 0), 2, '.', '') ?>">
+          <button type="submit" class="btn btn-outline w-full">Guardar y salir</button>
+        </form>
         <button id="btn-anular" class="btn btn-danger w-full" style="margin-top:4px"
                 data-pedido-id="<?= $pedido['id'] ?>">
           Anular pedido
