@@ -25,6 +25,13 @@ require VIEW_PATH . '/layout/header.php';
     </button>
     <a href="<?= htmlspecialchars($reciboUrl) ?>" target="_blank" class="btn btn-sm btn-outline">Ver recibo</a>
     <?php endif; ?>
+    <?php if ($pedido['estado'] === 'confirmado' && !empty($pedido['sena']) && $pedido['sena'] > 0 && $pedido['sena'] < $pedido['total']): ?>
+    <button id="btn-cerrar-saldo" class="btn btn-sm btn-success"
+            data-pedido-id="<?= $pedido['id'] ?>"
+            data-saldo="<?= number_format(max(0, $pedido['total'] - $pedido['sena']), 2, '.', '') ?>">
+      💰 Cobrar saldo ($ <?= number_format(max(0, $pedido['total'] - $pedido['sena']), 2, ',', '.') ?>)
+    </button>
+    <?php endif; ?>
     <?php if ($pedido['estado'] === 'confirmado' && Auth::isAdmin() && !$stockAplicado): ?>
     <button id="btn-reaplicar-stock" class="btn btn-sm btn-warning" data-pedido-id="<?= $pedido['id'] ?>">
       ⚠ Reaplicar stock
@@ -295,6 +302,29 @@ require VIEW_PATH . '/layout/header.php';
         .then(function(d) {
           if (d.ok) { window.location.href = d.redirect || window.location.href; }
           else { alert(d.msg || 'Error.'); btn.disabled = false; btn.textContent = 'Confirmar'; }
+        });
+    });
+  }
+
+  // ── Modal Cerrar saldo ────────────────────────────────────
+  var btnCerrarSaldo   = document.getElementById('btn-cerrar-saldo');
+  var modalCerrarSaldo = document.getElementById('modal-cerrar-saldo');
+  if (btnCerrarSaldo && modalCerrarSaldo) {
+    btnCerrarSaldo.addEventListener('click', function() { modalCerrarSaldo.classList.add('show'); });
+    modalCerrarSaldo.querySelector('.modal-backdrop').addEventListener('click', function() { modalCerrarSaldo.classList.remove('show'); });
+    document.getElementById('btn-cancelar-cerrar-saldo').addEventListener('click', function() { modalCerrarSaldo.classList.remove('show'); });
+    document.getElementById('btn-confirmar-cerrar-saldo').addEventListener('click', function() {
+      var btn = this;
+      btn.disabled = true;
+      btn.textContent = 'Guardando...';
+      var fd = new FormData();
+      fd.append('pedido_id', btnCerrarSaldo.dataset.pedidoId);
+      fd.append('metodo_pago', document.getElementById('saldo-metodo').value);
+      fetch('index.php?page=pedido_cerrar_saldo', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (d.ok) { window.location.reload(); }
+          else { alert(d.msg || 'Error.'); btn.disabled = false; btn.textContent = 'Confirmar cobro'; }
         });
     });
   }

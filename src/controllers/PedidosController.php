@@ -364,6 +364,41 @@ class PedidosController {
     }
 
     // ──────────────────────────────────────────────────────────
+    // CERRAR SALDO PENDIENTE
+    // Marca sena = total (pago completado)
+    // ──────────────────────────────────────────────────────────
+
+    public function cerrarSaldo(): void {
+        Auth::require();
+        header('Content-Type: application/json');
+
+        $eid       = Auth::empresaId();
+        $pedido_id = (int)($_POST['pedido_id'] ?? 0);
+        $metodo    = $_POST['metodo_pago'] ?? null;
+
+        $validMetodos = ['efectivo','transferencia','tarjeta','cuenta_corriente','otro'];
+        if (!in_array($metodo, $validMetodos)) $metodo = null;
+
+        $pedido = $this->findPedido($pedido_id, $eid);
+        if ($pedido['estado'] !== 'confirmado') {
+            echo json_encode(['ok' => false, 'msg' => 'El pedido no está confirmado.']);
+            exit;
+        }
+
+        try {
+            $this->db->prepare(
+                "UPDATE pedidos SET sena = total" . ($metodo ? ", metodo_pago = ?" : "") . " WHERE id = ?"
+            )->execute($metodo ? [$metodo, $pedido_id] : [$pedido_id]);
+
+            echo json_encode(['ok' => true]);
+        } catch (\PDOException $e) {
+            echo json_encode(['ok' => false, 'msg' => 'Error al guardar: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+
+    // ──────────────────────────────────────────────────────────
     // RE-APLICAR STOCK (reparación: pedido confirmado sin movimientos)
     // Solo admin. Idempotente: rechaza si ya hay movimientos registrados.
     // ──────────────────────────────────────────────────────────

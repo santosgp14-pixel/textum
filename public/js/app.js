@@ -253,8 +253,9 @@ if (pedidoForm) {
     const wrap  = document.getElementById('saldo-pendiente-wrap');
     const valEl = document.getElementById('saldo-pendiente-val');
     if (!wrap || !valEl || !senaInputEl) return;
-    const totalStr = totalEl?.textContent.replace(/[^0-9,]/g, '').replace(',', '.') || '0';
-    const total    = parseFloat(totalStr.replace(/\./g, '').replace(',', '.')) || 0;
+    // Total is in Argentine format: "$ 1.234,56" (dot=thousands, comma=decimal)
+    const totalRaw = (totalEl?.textContent || '0').replace(/[^0-9.,]/g, '');
+    const total    = parseFloat(totalRaw.replace(/\./g, '').replace(',', '.')) || 0;
     const sena     = parseFloat(senaInputEl.value) || 0;
     if (sena > 0 && sena < total) {
       const saldo = total - sena;
