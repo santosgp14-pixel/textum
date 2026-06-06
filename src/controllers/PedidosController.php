@@ -375,6 +375,7 @@ class PedidosController {
         $eid       = Auth::empresaId();
         $pedido_id = (int)($_POST['pedido_id'] ?? 0);
         $metodo    = $_POST['metodo_pago'] ?? null;
+        $monto     = (float)($_POST['monto'] ?? 0);
 
         $validMetodos = ['efectivo','transferencia','tarjeta','cuenta_corriente','otro'];
         if (!in_array($metodo, $validMetodos)) $metodo = null;
@@ -385,10 +386,23 @@ class PedidosController {
             exit;
         }
 
+        // sena actual (may be null if migration not yet run)
+        $senaActual = (float)($pedido['sena'] ?? 0);
+        // If monto not specified or >= saldo, close completely (sena = total)
+        $saldo = $pedido['total'] - $senaActual;
+        if ($monto <= 0 || $monto >= $saldo) {
+            $nuevaSena = $pedido['total']; // fully paid
+        } else {
+            $nuevaSena = $senaActual + $monto; // partial payment
+        }
+
         try {
-            $this->db->prepare(
-                "UPDATE pedidos SET sena = total" . ($metodo ? ", metodo_pago = ?" : "") . " WHERE id = ?"
-            )->execute($metodo ? [$metodo, $pedido_id] : [$pedido_id]);
+            $params = [$nuevaSena];
+            $sql    = "UPDATE pedidos SET sena = ?";
+            if ($metodo) { $sql .= ", metodo_pago = ?"; $params[] = $metodo; }
+            $sql .= " WHERE id = ?";
+            $params[] = $pedido_id;
+            $this->db->prepare($sql)->execute($params);
 
             echo json_encode(['ok' => true]);
         } catch (\PDOException $e) {

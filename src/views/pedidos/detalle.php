@@ -226,13 +226,21 @@ require VIEW_PATH . '/layout/header.php';
 <?php endif; ?>
 
 <?php if ($pedido['estado'] === 'confirmado'): ?>
+<?php $saldoRestante = max(0, $pedido['total'] - ($pedido['sena'] ?? 0)); ?>
 <div class="modal" id="modal-cerrar-saldo">
   <div class="modal-backdrop"></div>
   <div class="modal-box">
-    <h3 class="modal-title">Cobrar saldo pendiente</h3>
+    <h3 class="modal-title">Registrar cobro</h3>
     <p class="text-sm text-muted" style="margin-bottom:16px">
-      Saldo restante: <strong>$ <?= number_format(max(0, $pedido['total'] - ($pedido['sena'] ?? 0)), 2, ',', '.') ?></strong>
+      Saldo pendiente: <strong>$ <?= number_format($saldoRestante, 2, ',', '.') ?></strong>
     </p>
+    <div class="form-group">
+      <label class="form-label">Monto cobrado ($)</label>
+      <input type="number" id="saldo-monto" class="form-control"
+             value="<?= number_format($saldoRestante, 2, '.', '') ?>"
+             step="0.01" min="0.01">
+      <div class="text-xs text-muted mt-1">Por defecto el saldo completo. Podés ingresar un monto parcial.</div>
+    </div>
     <div class="form-group">
       <label class="form-label">Método de cobro</label>
       <select id="saldo-metodo" class="form-control">
@@ -338,12 +346,15 @@ require VIEW_PATH . '/layout/header.php';
     modalCerrarSaldo.querySelector('.modal-backdrop').addEventListener('click', function() { modalCerrarSaldo.classList.remove('show'); });
     document.getElementById('btn-cancelar-cerrar-saldo').addEventListener('click', function() { modalCerrarSaldo.classList.remove('show'); });
     document.getElementById('btn-confirmar-cerrar-saldo').addEventListener('click', function() {
-      var btn = this;
+      var btn   = this;
+      var monto = parseFloat(document.getElementById('saldo-monto').value);
+      if (!monto || monto <= 0) { alert('Ingresá un monto válido.'); return; }
       btn.disabled = true;
       btn.textContent = 'Guardando...';
       var fd = new FormData();
-      fd.append('pedido_id', btnCerrarSaldo.dataset.pedidoId);
+      fd.append('pedido_id',  btnCerrarSaldo.dataset.pedidoId);
       fd.append('metodo_pago', document.getElementById('saldo-metodo').value);
+      fd.append('monto',       monto);
       fetch('index.php?page=pedido_cerrar_saldo', { method: 'POST', body: fd })
         .then(function(r) { return r.json(); })
         .then(function(d) {
