@@ -267,6 +267,21 @@ if (pedidoForm) {
   }
   senaInputEl?.addEventListener('input', updateSaldo);
 
+  // ── Auto-guardar método de pago y seña al cambiar ────────────
+  let pagoSaveTimeout;
+  function savePago() {
+    clearTimeout(pagoSaveTimeout);
+    pagoSaveTimeout = setTimeout(function() {
+      const fd = new FormData();
+      fd.append('pedido_id',   pedidoId);
+      fd.append('metodo_pago', metodoPagoEl?.value || '');
+      fd.append('sena',        senaInputEl?.value  || '0');
+      fetch('index.php?page=pedido_pago_set', { method: 'POST', body: fd });
+    }, 600);
+  }
+  metodoPagoEl?.addEventListener('change', savePago);
+  senaInputEl?.addEventListener('change', savePago);
+
   let varianteActual = null; // variante seleccionada por barcode
 
   // ── Búsqueda unificada: nombre o código de barras ───────────

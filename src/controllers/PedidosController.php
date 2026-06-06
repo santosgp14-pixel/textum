@@ -85,8 +85,61 @@ class PedidosController {
             exit;
         }
 
+        // Fetch payment columns with fallback
+        if (!array_key_exists('sena', $pedido)) {
+            try {
+                $stmtPago = $this->db->prepare("SELECT metodo_pago, sena FROM pedidos WHERE id = ?");
+                $stmtPago->execute([$id]);
+                $pagoRow = $stmtPago->fetch();
+                $pedido['metodo_pago'] = $pagoRow['metodo_pago'] ?? null;
+                $pedido['sena']        = $pagoRow['sena'] ?? 0;
+            } catch (\PDOException $e) {
+                $obs = json_decode($pedido['observaciones'] ?? '', true);
+                $pedido['metodo_pago'] = $obs['metodo_pago'] ?? null;
+                $pedido['sena']        = (float)($obs['sena'] ?? 0);
+            }
+        }
+
         $items = $this->getItems($id);
         require VIEW_PATH . '/pedidos/abierto.php';
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // Guardar método de pago y seña en pedido abierto (AJAX)
+    // ──────────────────────────────────────────────────────────
+
+    public function setPago(): void {
+        Auth::require();
+        header('Content-Type: application/json');
+
+        $eid       = Auth::empresaId();
+        $pedido_id = (int)($_POST['pedido_id'] ?? 0);
+        $metodo    = $_POST['metodo_pago'] ?? null;
+        $sena      = max(0, (float)($_POST['sena'] ?? 0));
+
+        $validMetodos = ['efectivo','transferencia','tarjeta','cuenta_corriente','otro'];
+        if ($metodo !== null && !in_array($metodo, $validMetodos)) $metodo = null;
+
+        $pedido = $this->findPedido($pedido_id, $eid);
+        if ($pedido['estado'] !== 'abierto') {
+            echo json_encode(['ok' => false, 'msg' => 'Pedido no editable.']);
+            exit;
+        }
+
+        try {
+            $this->db->prepare(
+                "UPDATE pedidos SET metodo_pago = ?, sena = ? WHERE id = ?"
+            )->execute([$metodo ?: null, $sena, $pedido_id]);
+        } catch (\PDOException $e) {
+            // Columns not migrated yet — store in observaciones
+            $obs = json_encode(['metodo_pago' => $metodo, 'sena' => $sena]);
+            $this->db->prepare(
+                "UPDATE pedidos SET observaciones = ? WHERE id = ?"
+            )->execute([$obs, $pedido_id]);
+        }
+
+        echo json_encode(['ok' => true]);
+        exit;
     }
 
     // ──────────────────────────────────────────────────────────

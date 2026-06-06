@@ -72,6 +72,7 @@ $router->add('GET',  'variante_rollos',     fn() => (new StockController())->rol
 $router->add('GET',  'pedidos',          fn() => (new PedidosController())->index());
 $router->add('GET',  'pedido_nuevo',     fn() => (new PedidosController())->nuevo());
 $router->add('GET',  'pedido_abierto',   fn() => (new PedidosController())->pedidoAbierto());
+$router->add('POST', 'pedido_pago_set',  fn() => (new PedidosController())->setPago());
 $router->add('POST', 'pedido_item_add',  fn() => (new PedidosController())->agregarItem());
 $router->add('POST', 'pedido_item_del',  fn() => (new PedidosController())->eliminarItem());
 $router->add('POST', 'pedido_confirmar',      fn() => (new PedidosController())->confirmar());

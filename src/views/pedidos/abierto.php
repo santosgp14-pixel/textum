@@ -157,17 +157,17 @@ require VIEW_PATH . '/layout/header.php';
             <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;display:block;margin-bottom:4px">Método de pago</label>
             <select id="metodo-pago" class="form-control" style="font-size:.875rem">
               <option value="">— Sin especificar —</option>
-              <option value="efectivo">💵 Efectivo</option>
-              <option value="transferencia">🏦 Transferencia</option>
-              <option value="tarjeta">💳 Tarjeta</option>
-              <option value="cuenta_corriente">📒 Cuenta corriente</option>
-              <option value="otro">Otro</option>
+              <option value="efectivo" <?= ($pedido['metodo_pago'] ?? '') === 'efectivo' ? 'selected' : '' ?>>💵 Efectivo</option>
+              <option value="transferencia" <?= ($pedido['metodo_pago'] ?? '') === 'transferencia' ? 'selected' : '' ?>>🏦 Transferencia</option>
+              <option value="tarjeta" <?= ($pedido['metodo_pago'] ?? '') === 'tarjeta' ? 'selected' : '' ?>>💳 Tarjeta</option>
+              <option value="cuenta_corriente" <?= ($pedido['metodo_pago'] ?? '') === 'cuenta_corriente' ? 'selected' : '' ?>>📒 Cuenta corriente</option>
+              <option value="otro" <?= ($pedido['metodo_pago'] ?? '') === 'otro' ? 'selected' : '' ?>>Otro</option>
             </select>
           </div>
           <div>
             <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;display:block;margin-bottom:4px">Seña / adelanto ($)</label>
             <input type="number" id="sena-input" class="form-control" style="font-size:.875rem"
-                   value="0" step="0.01" min="0" placeholder="0,00">
+                   value="<?= number_format((float)($pedido['sena'] ?? 0), 2, '.', '') ?>" step="0.01" min="0" placeholder="0,00">
           </div>
           <div id="saldo-pendiente-wrap" style="display:none;background:#fef9c3;border-radius:6px;padding:8px 10px;font-size:.82rem">
             Saldo pendiente: <strong id="saldo-pendiente-val">$ 0,00</strong>
