@@ -101,6 +101,23 @@ runSafe($db, "CREATE TABLE IF NOT EXISTS `remember_tokens` (
   KEY `idx_remember_expires` (`expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4", 'v1.6 tabla remember_tokens', $log);
 
+// ──────────────────────────────────────────────
+// v1.7: precio_fraccionado en variantes
+// ──────────────────────────────────────────────
+runSafe($db, "ALTER TABLE `variantes` ADD COLUMN IF NOT EXISTS `precio_fraccionado` DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER `precio`", 'v1.7 variantes.precio_fraccionado', $log);
+runSafe($db, "UPDATE `variantes` SET `precio_fraccionado` = ROUND(`precio` * 1.15, 2) WHERE `precio` > 0 AND `precio_fraccionado` = 0", 'v1.7 variantes.precio_fraccionado init', $log);
+
+// ──────────────────────────────────────────────
+// v1.8: ancho en telas
+// ──────────────────────────────────────────────
+runSafe($db, "ALTER TABLE `telas` ADD COLUMN IF NOT EXISTS `ancho` DECIMAL(6,3) NULL DEFAULT NULL AFTER `rinde`", 'v1.8 telas.ancho', $log);
+
+// ──────────────────────────────────────────────
+// v1.9: rollo_id en movimientos_stock + corrección metros
+// ──────────────────────────────────────────────
+runSafe($db, "ALTER TABLE `movimientos_stock` ADD COLUMN IF NOT EXISTS `rollo_id` INT UNSIGNED NULL DEFAULT NULL AFTER `pedido_id`", 'v1.9 movimientos_stock.rollo_id', $log);
+runSafe($db, "UPDATE rollos r INNER JOIN (SELECT pi.rollo_id, SUM(pi.cantidad) AS total_vendido FROM pedido_items pi JOIN pedidos p ON p.id = pi.pedido_id WHERE p.estado = 'confirmado' AND pi.rollo_id IS NOT NULL GROUP BY pi.rollo_id) v ON v.rollo_id = r.id SET r.metros = GREATEST(0, r.metros - v.total_vendido)", 'v1.9 rollos metros corrección', $log);
+
 ?><!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"><title>Migración pendiente</title>
@@ -108,7 +125,7 @@ runSafe($db, "CREATE TABLE IF NOT EXISTS `remember_tokens` (
 li{margin:.3rem 0;font-size:.9rem}</style>
 </head>
 <body>
-<h2>Migración v1.4 → v1.6 completada</h2>
+<h2>Migración v1.4 → v1.9 completada</h2>
 <ul>
 <?php foreach ($log as $line): ?>
   <li><?= htmlspecialchars($line) ?></li>
