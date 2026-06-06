@@ -8,6 +8,6 @@ ALTER TABLE `pedidos`
   ADD COLUMN IF NOT EXISTS `metodo_pago` ENUM('efectivo','transferencia','tarjeta','cuenta_corriente','otro') NULL DEFAULT NULL
     COMMENT 'Método de pago al confirmar el pedido'
     AFTER `total`,
-  ADD COLUMN IF NOT EXISTS `seña` DECIMAL(14,2) NOT NULL DEFAULT 0.00
-    COMMENT 'Adelanto o seña abonada por el cliente'
+  ADD COLUMN `sena` DECIMAL(14,2) NOT NULL DEFAULT 0.00
+    COMMENT 'Adelanto o sena abonada por el cliente'
     AFTER `metodo_pago`;

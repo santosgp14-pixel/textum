@@ -122,7 +122,7 @@ runSafe($db, "UPDATE rollos r INNER JOIN (SELECT pi.rollo_id, SUM(pi.cantidad) A
 // v1.10: metodo_pago y seña en pedidos
 // ──────────────────────────────────────────────
 runSafe($db, "ALTER TABLE `pedidos` ADD COLUMN `metodo_pago` ENUM('efectivo','transferencia','tarjeta','cuenta_corriente','otro') NULL DEFAULT NULL AFTER `total`", 'v1.10 pedidos.metodo_pago', $log);
-runSafe($db, "ALTER TABLE `pedidos` ADD COLUMN `seña` DECIMAL(14,2) NOT NULL DEFAULT 0.00 AFTER `metodo_pago`", 'v1.10 pedidos.seña', $log);
+runSafe($db, "ALTER TABLE `pedidos` ADD COLUMN `sena` DECIMAL(14,2) NOT NULL DEFAULT 0.00 AFTER `metodo_pago`", 'v1.10 pedidos.sena', $log);
 
 ?><!DOCTYPE html>
 <html lang="es">

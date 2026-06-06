@@ -140,17 +140,17 @@
           $&thinsp;<?= number_format($pedido['total'], 2, ',', '.') ?>
         </td>
       </tr>
-      <?php if (!empty($pedido['seña']) && $pedido['seña'] > 0): ?>
+      <?php if (!empty($pedido['sena']) && $pedido['sena'] > 0): ?>
       <tr style="background:var(--gray-50)">
         <td colspan="3" class="text-right" style="font-size:.85rem;color:var(--gray-600)">Seña abonada</td>
         <td class="text-right" style="color:#16a34a;font-weight:700">
-          $&thinsp;<?= number_format($pedido['seña'], 2, ',', '.') ?>
+          $&thinsp;<?= number_format($pedido['sena'], 2, ',', '.') ?>
         </td>
       </tr>
       <tr style="background:var(--gray-50)">
         <td colspan="3" class="text-right" style="font-size:.85rem;color:var(--gray-600)">Saldo pendiente</td>
         <td class="text-right" style="color:#dc2626;font-weight:700">
-          $&thinsp;<?= number_format(max(0, $pedido['total'] - $pedido['seña']), 2, ',', '.') ?>
+          $&thinsp;<?= number_format(max(0, $pedido['total'] - $pedido['sena']), 2, ',', '.') ?>
         </td>
       </tr>
       <?php endif; ?>

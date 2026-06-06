@@ -336,7 +336,7 @@ class PedidosController {
             // Try saving payment columns (graceful fallback if migration not yet run)
             try {
                 $this->db->prepare(
-                    "UPDATE pedidos SET estado='confirmado', confirmado_at=NOW(), metodo_pago=?, seña=? WHERE id=?"
+                    "UPDATE pedidos SET estado='confirmado', confirmado_at=NOW(), metodo_pago=?, sena=? WHERE id=?"
                 )->execute([$metodoPago, $sena, $pedido_id]);
             } catch (\PDOException $e) {
                 // Columns missing — confirm without them
@@ -741,18 +741,18 @@ class PedidosController {
         $stockAplicado = (int)$stmtMov->fetchColumn() > 0;
 
         // Fetch payment columns with graceful fallback (migration may not have run yet)
-        if (!array_key_exists('metodo_pago', $pedido)) {
+        if (!array_key_exists('sena', $pedido)) {
             try {
                 $stmtPago = $this->db->prepare(
-                    "SELECT metodo_pago, `seña` FROM pedidos WHERE id = ?"
+                    "SELECT metodo_pago, sena FROM pedidos WHERE id = ?"
                 );
                 $stmtPago->execute([$id]);
                 $pagoRow = $stmtPago->fetch();
                 $pedido['metodo_pago'] = $pagoRow['metodo_pago'] ?? null;
-                $pedido['seña']        = $pagoRow['seña'] ?? 0;
+                $pedido['sena']        = $pagoRow['sena'] ?? 0;
             } catch (\PDOException $e) {
                 $pedido['metodo_pago'] = null;
-                $pedido['seña']        = 0;
+                $pedido['sena']        = 0;
             }
         }
 
@@ -812,18 +812,18 @@ class PedidosController {
         ];
 
         // Fetch payment columns with graceful fallback
-        if (!array_key_exists('metodo_pago', $pedido)) {
+        if (!array_key_exists('sena', $pedido)) {
             try {
                 $stmtPago = $this->db->prepare(
-                    "SELECT metodo_pago, `seña` FROM pedidos WHERE id = ?"
+                    "SELECT metodo_pago, sena FROM pedidos WHERE id = ?"
                 );
                 $stmtPago->execute([$id]);
                 $pagoRow = $stmtPago->fetch();
                 $pedido['metodo_pago'] = $pagoRow['metodo_pago'] ?? null;
-                $pedido['seña']        = $pagoRow['seña'] ?? 0;
+                $pedido['sena']        = $pagoRow['sena'] ?? 0;
             } catch (\PDOException $e) {
                 $pedido['metodo_pago'] = null;
-                $pedido['seña']        = 0;
+                $pedido['sena']        = 0;
             }
         }
 
