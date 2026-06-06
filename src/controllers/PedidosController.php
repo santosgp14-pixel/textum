@@ -743,7 +743,7 @@ class PedidosController {
 
         $stmt = $this->db->prepare(
             "SELECT p.*, u.nombre AS vendedor_nombre, c.nombre AS cliente_nombre,
-                    e.nombre AS empresa_nombre, e.whatsapp, e.logo_url
+                    e.nombre AS empresa_nombre, e.id AS empresa_id_val
              FROM pedidos p
              JOIN usuarios u ON u.id = p.usuario_id
              JOIN empresas e ON e.id = p.empresa_id
@@ -759,10 +759,24 @@ class PedidosController {
             exit;
         }
 
+        // Fetch optional v1.6 columns (whatsapp, logo_url) with graceful fallback
+        // if migration hasn't been run yet on this environment.
+        $whatsapp = '';
+        $logo_url = '';
+        try {
+            $stmtEmp = $this->db->prepare("SELECT whatsapp, logo_url FROM empresas WHERE id = ?");
+            $stmtEmp->execute([$pedido['empresa_id_val']]);
+            $empRow   = $stmtEmp->fetch();
+            $whatsapp = $empRow['whatsapp'] ?? '';
+            $logo_url = $empRow['logo_url'] ?? '';
+        } catch (\PDOException $e) {
+            // Columns not yet migrated — continue without them
+        }
+
         $empresa = [
             'nombre'   => $pedido['empresa_nombre'],
-            'whatsapp' => $pedido['whatsapp']  ?? '',
-            'logo_url' => $pedido['logo_url']  ?? '',
+            'whatsapp' => $whatsapp,
+            'logo_url' => $logo_url,
         ];
 
         $items        = $this->getItems($id);
