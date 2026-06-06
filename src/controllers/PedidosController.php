@@ -48,17 +48,6 @@ class PedidosController {
         $eid = Auth::empresaId();
         $uid = Auth::userId();
 
-        // Si ya existe un pedido abierto de este usuario, redirigir a él
-        $stmt = $this->db->prepare(
-            "SELECT id FROM pedidos WHERE empresa_id = ? AND usuario_id = ? AND estado = 'abierto' ORDER BY id DESC LIMIT 1"
-        );
-        $stmt->execute([$eid, $uid]);
-        $existente = $stmt->fetchColumn();
-        if ($existente) {
-            header('Location: ' . BASE_URL . "/index.php?page=pedido_abierto&id=$existente");
-            exit;
-        }
-
         $stmt = $this->db->prepare(
             "INSERT INTO pedidos (empresa_id, usuario_id, estado, total)
              VALUES (?, ?, 'abierto', 0.00)"

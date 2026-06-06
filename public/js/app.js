@@ -284,16 +284,7 @@ if (pedidoForm) {
 
   // ── Guardar y salir ──────────────────────────────────────
   document.getElementById('btn-salir')?.addEventListener('click', async () => {
-    const ok = await Confirm({
-      title:   'Guardar y salir',
-      message: 'El pedido quedará abierto. Podés retomarlo cuando quieras.',
-      icon:    '💾',
-      okText:  'Guardar y salir',
-      okClass: 'btn-outline',
-    });
-    if (!ok) return;
-
-    // Save payment data before leaving
+    // Save payment data then navigate
     const fd = new FormData();
     fd.append('pedido_id',   pedidoId);
     fd.append('metodo_pago', metodoPagoEl?.value || '');
