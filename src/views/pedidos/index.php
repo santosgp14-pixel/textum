@@ -134,14 +134,15 @@ $filtroEstado   = $_GET['estado'] ?? '';
 </div>
 
 <!-- Modal de confirmación de anulación -->
-<div id="modal-anular-bulk" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.45);align-items:center;justify-content:center">
-  <div style="background:#fff;border-radius:12px;padding:28px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.25);margin:16px">
-    <h3 style="margin:0 0 6px;font-size:1.1rem;font-weight:700" id="modal-anular-bulk-title">Anular pedidos</h3>
-    <p id="modal-anular-bulk-desc" style="margin:0 0 16px;color:#6b7280;font-size:.9rem"></p>
-    <label style="display:block;font-size:.85rem;font-weight:600;margin-bottom:6px;color:#374151">Motivo de anulación <span style="color:#ef4444">*</span></label>
+<div id="modal-anular-bulk" class="modal">
+  <div class="modal-backdrop"></div>
+  <div class="modal-box" style="max-width:440px">
+    <h3 style="margin:0 0 6px;font-size:1.15rem;font-weight:700" id="modal-anular-bulk-title">Anular pedidos</h3>
+    <p id="modal-anular-bulk-desc" style="margin:0 0 16px;color:var(--gray-500);font-size:.9rem"></p>
+    <label style="display:block;font-size:.85rem;font-weight:600;margin-bottom:6px;color:var(--gray-700)">Motivo de anulación <span style="color:var(--danger)">*</span></label>
     <textarea id="modal-anular-bulk-motivo" rows="3" placeholder="Ej: Error de carga, duplicado…"
-      style="width:100%;box-sizing:border-box;border:1px solid #d1d5db;border-radius:8px;padding:10px;font-size:.9rem;resize:vertical;font-family:inherit"></textarea>
-    <p id="modal-anular-bulk-error" style="display:none;color:#ef4444;font-size:.82rem;margin:6px 0 0">Ingresá un motivo para continuar.</p>
+      class="form-control" style="resize:vertical;font-family:inherit"></textarea>
+    <p id="modal-anular-bulk-error" style="display:none;color:var(--danger);font-size:.82rem;margin:6px 0 0">Ingresá un motivo para continuar.</p>
     <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
       <button id="modal-anular-bulk-cancel" class="btn btn-outline btn-sm">Cancelar</button>
       <button id="modal-anular-bulk-confirm" class="btn btn-danger btn-sm">Confirmar anulación</button>
@@ -161,12 +162,12 @@ $filtroEstado   = $_GET['estado'] ?? '';
     document.getElementById('modal-anular-bulk-error').style.display = 'none';
     document.getElementById('modal-anular-bulk-confirm').disabled  = false;
     document.getElementById('modal-anular-bulk-confirm').textContent = 'Confirmar anulación';
-    document.getElementById('modal-anular-bulk').style.display = 'flex';
+    document.getElementById('modal-anular-bulk').classList.add('show');
     setTimeout(function() { document.getElementById('modal-anular-bulk-motivo').focus(); }, 80);
   }
 
   function closeAnularModal() {
-    document.getElementById('modal-anular-bulk').style.display = 'none';
+    document.getElementById('modal-anular-bulk').classList.remove('show');
   }
 
   function updateBulkToolbar() {
@@ -190,7 +191,7 @@ $filtroEstado   = $_GET['estado'] ?? '';
     var modalEl = document.getElementById('modal-anular-bulk');
     document.getElementById('modal-anular-bulk-cancel').addEventListener('click', closeAnularModal);
     if (modalEl) {
-      modalEl.addEventListener('click', function(e) { if (e.target === this) closeAnularModal(); });
+      modalEl.querySelector('.modal-backdrop')?.addEventListener('click', closeAnularModal);
     }
 
     // ── Modal: confirmar ─────────────────────────────────────
